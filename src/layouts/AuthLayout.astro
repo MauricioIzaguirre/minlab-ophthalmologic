@@ -1,0 +1,148 @@
+---
+import "../styles/global.css";
+
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { 
+  title = "Autenticación", 
+  description = "Accede a tu cuenta de forma segura" 
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="es" class="theme-claude dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    
+    <!-- Preload critical resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  </head>
+  
+  <body class="min-h-screen bg-background font-sans antialiased">
+    <!-- Background Pattern -->
+    <div class="absolute inset-0 bg-grid-white/[0.02] bg-grid-16" aria-hidden="true"></div>
+    
+    <!-- Main Authentication Container -->
+    <div class="relative flex min-h-screen">
+      <!-- Left Side - Branding/Info (hidden on mobile) -->
+      <div class="hidden lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:px-12 xl:px-24 bg-card/50 backdrop-blur-sm">
+        <div class="mx-auto max-w-md">
+          <div class="mb-8">
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
+              <svg class="h-8 w-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+          </div>
+          
+          <h1 class="text-3xl font-bold tracking-tight text-foreground">
+            Bienvenido de vuelta
+          </h1>
+          <p class="mt-4 text-lg text-muted-foreground">
+            Accede a tu cuenta y continúa donde lo dejaste. Tu productividad te está esperando.
+          </p>
+          
+          <!-- Feature List -->
+          <div class="mt-8 space-y-4">
+            <div class="flex items-center gap-3">
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+                <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <span class="text-sm text-muted-foreground">Acceso seguro y protegido</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+                <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <span class="text-sm text-muted-foreground">Sincronización en todos tus dispositivos</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
+                <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+              </div>
+              <span class="text-sm text-muted-foreground">Soporte 24/7 disponible</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Side - Authentication Form -->
+      <div class="flex w-full lg:w-1/2 flex-col justify-center px-6 py-12 sm:px-12 lg:px-24">
+        <div class="mx-auto w-full max-w-md">
+          <!-- Mobile Logo -->
+          <div class="lg:hidden mb-8 text-center">
+            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary mx-auto mb-4">
+              <svg class="h-8 w-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+              </svg>
+            </div>
+          </div>
+          
+          <!-- Authentication Form Slot -->
+          <slot />
+          
+          <!-- Footer Links -->
+          <div class="mt-8 text-center">
+            <p class="text-xs text-muted-foreground">
+              Al continuar, aceptas nuestros 
+              <a href="#" class="underline underline-offset-4 hover:text-primary">Términos de Servicio</a>
+              y 
+              <a href="#" class="underline underline-offset-4 hover:text-primary">Política de Privacidad</a>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Theme Toggle Button -->
+    <button 
+      type="button" 
+      class="fixed top-4 right-4 z-50 btn-outline btn-sm"
+      onclick="toggleTheme()"
+      aria-label="Cambiar tema"
+    >
+      <svg class="h-4 w-4 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+      </svg>
+      <svg class="h-4 w-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+      </svg>
+    </button>
+  </body>
+</html>
+
+<style>
+  /* Grid background pattern */
+  .bg-grid-16 {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0);
+    background-size: 16px 16px;
+  }
+  
+  /* Smooth transitions */
+  html {
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  
+  /* Focus styles for accessibility */
+  button:focus-visible,
+  input:focus-visible,
+  a:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+</style>

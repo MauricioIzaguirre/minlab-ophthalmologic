@@ -1,0 +1,12 @@
+@import "tailwindcss";
+/* Importar Basecoat */
+@import "basecoat-css";
+
+/* Importar tus estilos personalizados */
+@import "./custom.css";
+@import "./highlight.css";
+
+/* Importar los temas */
+@import "./themes/claude.css";
+@import "./themes/supabase.css";
+

@@ -1,5 +1,9 @@
+---
+import "../styles/global.css";
+---
+
 <!doctype html>
-<html lang="en">
+<html lang="en" class="theme-claude">
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width" />
@@ -9,6 +13,10 @@
 	</head>
 	<body>
 		<slot />
+		<!-- Cargar JavaScript solo en el cliente -->
+		<script>
+			import 'basecoat-css/all';
+		</script>
 	</body>
 </html>
 
