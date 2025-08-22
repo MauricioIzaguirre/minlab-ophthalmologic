@@ -1,0 +1,48 @@
+---
+// RegisterForm.astro - Componente de formulario de registro
+---
+<div class="card w-full">
+  <header>
+    <h2>Create your account</h2>
+    <p>Enter your details below to create your new account</p>
+  </header>
+  <section>
+    <form class="form grid gap-6">
+      <div class="grid grid-cols-2 gap-4">
+        <div class="grid gap-2">
+          <label for="register-first-name">First name</label>
+          <input type="text" id="register-first-name" required>
+        </div>
+        <div class="grid gap-2">
+          <label for="register-last-name">Last name</label>
+          <input type="text" id="register-last-name" required>
+        </div>
+      </div>
+      <div class="grid gap-2">
+        <label for="register-email">Email</label>
+        <input type="email" id="register-email" required>
+      </div>
+      <div class="grid gap-2">
+        <label for="register-password">Password</label>
+        <input type="password" id="register-password" required>
+      </div>
+      <div class="grid gap-2">
+        <label for="register-confirm-password">Confirm password</label>
+        <input type="password" id="register-confirm-password" required>
+      </div>
+      <div class="flex items-center space-x-2">
+        <input type="checkbox" id="register-terms" required class="rounded">
+        <label for="register-terms" class="text-sm">
+          I agree to the <a href="#" class="underline underline-offset-4 hover:text-primary">Terms of Service</a> and <a href="#" class="underline underline-offset-4 hover:text-primary">Privacy Policy</a>
+        </label>
+      </div>
+    </form>
+  </section>
+  <footer class="flex flex-col items-center gap-2">
+    <button type="button" class="btn w-full">Create account</button>
+    <button type="button" class="btn-outline w-full">Sign up with Google</button>
+    <p class="mt-4 text-center text-sm">
+      Already have an account? <a href="/auth/login" class="underline underline-offset-4 hover:underline">Sign in</a>
+    </p>
+  </footer>
+</div>
