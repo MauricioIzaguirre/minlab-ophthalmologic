@@ -1,30 +1,145 @@
 ---
 import "../styles/global.css";
+import AppSidebar from "../components/layout/AppSidebar.astro";
+import AppHeader from "../components/layout/AppHeader.astro";
+
+export interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Mi Aplicación",
+  description = "Plataforma moderna para gestión eficiente"
+} = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en" class="theme-claude">
-	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro Basics</title>
-	</head>
-	<body>
-		<slot />
-		<!-- Cargar JavaScript solo en el cliente -->
-		<script>
-			import 'basecoat-css/all';
-		</script>
-	</body>
+<html lang="es" class="theme-claude">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    
+    <!-- Preconnect to external domains for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <!-- Theme Script - Must be in head for FOUC prevention -->
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem('themeMode');
+          if (stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+          }
+        } catch (_) {}
+
+        const apply = (dark: boolean) => {
+          document.documentElement.classList.toggle('dark', dark);
+          try { localStorage.setItem('themeMode', dark ? 'dark' : 'light'); } catch (_) {}
+        };
+
+        document.addEventListener('basecoat:theme', (event) => {
+          const mode = (event as CustomEvent).detail?.mode;
+          apply(mode === 'dark' ? true
+                : mode === 'light' ? false
+                : !document.documentElement.classList.contains('dark'));
+        });
+      })();
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/basecoat.min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/sidebar.min.js" defer></script>
+  </head>
+
+  <body class="min-h-screen bg-background font-sans antialiased">
+    <!-- Main Application Container -->
+    <div class="relative flex min-h-screen w-full">
+      
+      <!-- Application Sidebar -->
+      <AppSidebar />
+      
+      <!-- Main Content Area -->
+      <div class="flex flex-1 flex-col lg:ml-64">
+        <!-- Application Header -->
+        <AppHeader />
+        
+        <!-- Page Content -->
+        <main class="flex-1 p-4">
+          <slot />
+        </main>
+      </div>
+    </div>
+
+    <!-- Theme Variant Script for Select -->
+    <script>
+      (() => {
+        const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
+        const storedTheme = localStorage.getItem('themeVariant');
+        if (themeSelect && storedTheme) themeSelect.value = storedTheme;
+        
+        themeSelect?.addEventListener('change', () => {
+          const newTheme = themeSelect.value;
+          document.documentElement.classList.forEach(c => {
+            if (c.startsWith('theme-')) document.documentElement.classList.remove(c);
+          });
+          if (newTheme) {
+            document.documentElement.classList.add(`theme-${newTheme}`);
+            localStorage.setItem('themeVariant', newTheme);
+          } else {
+            localStorage.removeItem('themeVariant');
+          }
+        });
+      })();
+    </script>
+  </body>
 </html>
 
 <style>
-	html,
-	body {
-		margin: 0;
-		width: 100%;
-		height: 100%;
-	}
+  /* Smooth transitions for theme switching */
+  html {
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Focus styles for accessibility */
+  button:focus-visible,
+  input:focus-visible,
+  a:focus-visible,
+  select:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Custom scrollbar styling */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Responsive sidebar positioning */
+  @media (min-width: 1024px) {
+    .sidebar-desktop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 40;
+      height: 100vh;
+      width: 16rem; /* 256px */
+    }
+  }
 </style>

@@ -50,10 +50,7 @@ const {
     </script>
   </head>
   
-  <body class="min-h-screen bg-background font-sans antialiased">
-    <!-- Background Pattern -->
-    <div class="absolute inset-0 bg-grid-white/[0.02] bg-grid-16" aria-hidden="true"></div>
-    
+  <body class="min-h-screen bg-background font-sans antialiased bg-dotted-pattern hide-scrollbar">
     <!-- Main Authentication Container -->
     <div class="relative flex min-h-screen">
       <!-- Left Side - Branding/Info (hidden on mobile) -->
@@ -105,7 +102,7 @@ const {
       </div>
       
       <!-- Right Side - Authentication Form -->
-      <div class="flex w-full lg:w-1/2 flex-col justify-center px-6 py-12 sm:px-12 lg:px-24">
+      <div class="flex w-full lg:w-1/2 flex-col justify-center px-6 py-12 sm:px-12 lg:px-24 min-h-screen hide-scrollbar overflow-y-auto">
         <div class="mx-auto w-full max-w-md">
           <!-- Mobile Logo -->
           <div class="lg:hidden mb-8 text-center">
@@ -133,15 +130,78 @@ const {
     </div>
     
     <!-- Theme Toggle Button Component -->
-    <ThemeSwitcher client:load/>
+    <ThemeSwitcher />
   </body>
 </html>
 
 <style>
-  /* Grid background pattern */
-  .bg-grid-16 {
-    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0);
+  /* Dotted background pattern that adapts to content height */
+  .bg-dotted-pattern {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.25) 1px, transparent 0);
     background-size: 16px 16px;
+    background-attachment: local; /* Key: makes background scroll with content */
+  }
+  
+  /* Dark theme variation - más visible también */
+  html.dark .bg-dotted-pattern {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0);
+  }
+  
+  /* Hide scrollbar completely but keep functionality - Brave/Chromium fix */
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+  }
+  
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+  
+  html::-webkit-scrollbar-track,
+  body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  html,
+  body {
+    -ms-overflow-style: none; /* IE y Edge */
+    scrollbar-width: none; /* Firefox */
+    overflow-x: hidden; /* Prevent horizontal scroll */
+  }
+  
+  /* También aplicar a cualquier elemento con scroll */
+  .hide-scrollbar::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .hide-scrollbar {
+    -ms-overflow-style: none; /* IE y Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  
+  /* Alternative: More subtle dots */
+  .bg-dotted-subtle {
+    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0);
+    background-size: 20px 20px;
+  }
+  
+  /* Alternative: Larger dots */
+  .bg-dotted-large {
+    background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.12) 2px, transparent 0);
+    background-size: 24px 24px;
   }
   
   /* Smooth transitions */

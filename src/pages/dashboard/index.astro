@@ -1,0 +1,123 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+// src/pages/dashboard.astro - Ejemplo de página usando el BaseLayout
+---
+
+<BaseLayout 
+  title="Dashboard | Mi Aplicación"
+  description="Panel de control principal con métricas y estadísticas"
+>
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
+      <p class="text-muted-foreground">Bienvenido a tu panel de control</p>
+    </div>
+    
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div class="card p-6">
+        <div class="flex items-center justify-between space-y-0 pb-2">
+          <h3 class="tracking-tight text-sm font-medium">Total Revenue</h3>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" x2="12" y1="2" y2="22"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <div class="text-2xl font-bold">$45,231.89</div>
+          <p class="text-xs text-muted-foreground">+20.1% from last month</p>
+        </div>
+      </div>
+      
+      <div class="card p-6">
+        <div class="flex items-center justify-between space-y-0 pb-2">
+          <h3 class="tracking-tight text-sm font-medium">Subscriptions</h3>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <div class="text-2xl font-bold">+2350</div>
+          <p class="text-xs text-muted-foreground">+180.1% from last month</p>
+        </div>
+      </div>
+      
+      <div class="card p-6">
+        <div class="flex items-center justify-between space-y-0 pb-2">
+          <h3 class="tracking-tight text-sm font-medium">Sales</h3>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect width="20" height="14" x="2" y="5" rx="2"/>
+            <line x1="2" x2="22" y1="10" y2="10"/>
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <div class="text-2xl font-bold">+12,234</div>
+          <p class="text-xs text-muted-foreground">+19% from last month</p>
+        </div>
+      </div>
+      
+      <div class="card p-6">
+        <div class="flex items-center justify-between space-y-0 pb-2">
+          <h3 class="tracking-tight text-sm font-medium">Active Now</h3>
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <div class="text-2xl font-bold">+573</div>
+          <p class="text-xs text-muted-foreground">+201 since last hour</p>
+        </div>
+      </div>
+    </div>
+    
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+      <div class="card col-span-4 p-6">
+        <h3 class="text-lg font-semibold">Overview</h3>
+        <p class="text-sm text-muted-foreground">January - June 2024</p>
+        <div class="h-[200px] flex items-center justify-center text-muted-foreground">
+          [Chart Placeholder]
+        </div>
+      </div>
+      
+      <div class="card col-span-3 p-6">
+        <h3 class="text-lg font-semibold">Recent Sales</h3>
+        <p class="text-sm text-muted-foreground">You made 265 sales this month.</p>
+        <div class="space-y-4 mt-4">
+          <div class="flex items-center">
+            <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+              OM
+            </div>
+            <div class="ml-4 space-y-1">
+              <p class="text-sm font-medium leading-none">Olivia Martin</p>
+              <p class="text-sm text-muted-foreground">olivia.martin@email.com</p>
+            </div>
+            <div class="ml-auto font-medium">+$1,999.00</div>
+          </div>
+          <div class="flex items-center">
+            <div class="w-9 h-9 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+              JL
+            </div>
+            <div class="ml-4 space-y-1">
+              <p class="text-sm font-medium leading-none">Jackson Lee</p>
+              <p class="text-sm text-muted-foreground">jackson.lee@email.com</p>
+            </div>
+            <div class="ml-auto font-medium">+$39.00</div>
+          </div>
+          <div class="flex items-center">
+            <div class="w-9 h-9 bg-gradient-to-br from-pink-500 to-rose-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+              IN
+            </div>
+            <div class="ml-4 space-y-1">
+              <p class="text-sm font-medium leading-none">Isabella Nguyen</p>
+              <p class="text-sm text-muted-foreground">isabella.nguyen@email.com</p>
+            </div>
+            <div class="ml-auto font-medium">+$299.00</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
