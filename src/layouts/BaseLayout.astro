@@ -28,6 +28,8 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
+    
+    
     <!-- Theme Script - Must be in head for FOUC prevention -->
     <script>
       (() => {
@@ -51,10 +53,10 @@ const {
         });
       })();
     </script>
-    
-    <!-- ✅ CORREGIDO: Scripts de Basecoat con defer al final del head -->
+    <!-- ✅ CORREGIDO: Scripts en orden correcto -->
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/basecoat.min.js" ></script>
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/sidebar.min.js" ></script>
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/sidebar.min.js" defer></script>
+    
   </head>
 
   <body class="min-h-screen bg-background font-sans antialiased">
@@ -75,34 +77,10 @@ const {
         </main>
       </div>
     </div>
-
-    <!-- ✅ Script adicional para asegurar la funcionalidad del sidebar -->
-    <script>
-      // Asegurar que el sidebar funcione correctamente
-      document.addEventListener('DOMContentLoaded', () => {
-        // Pequeño delay para asegurar que Basecoat esté cargado
-        setTimeout(() => {
-          // Verificar si el evento personalizado está funcionando
-          const toggleButton = document.querySelector('[onclick*="basecoat:sidebar"]');
-          if (toggleButton) {
-            console.log('Sidebar toggle button found and ready');
-          }
-          
-          // Fallback manual si Basecoat no responde
-          const sidebar = document.querySelector('.sidebar');
-          if (sidebar && toggleButton) {
-            toggleButton.addEventListener('click', (e) => {
-              e.preventDefault();
-              const isHidden = sidebar.getAttribute('aria-hidden') === 'true';
-              sidebar.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
-            });
-          }
-        }, 100);
-      });
-    </script>
   </body>
 </html>
 
+<!-- ✅ CORREGIDO: CSS mejorado para sidebar responsive -->
 <style>
   /* Smooth transitions for theme switching */
   html {
