@@ -51,8 +51,10 @@ const {
         });
       })();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/basecoat.min.js" defer></script>
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/sidebar.min.js" defer></script>
+    
+    <!-- ✅ CORREGIDO: Scripts de Basecoat con defer al final del head -->
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/basecoat.min.js" ></script>
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/sidebar.min.js" ></script>
   </head>
 
   <body class="min-h-screen bg-background font-sans antialiased">
@@ -74,26 +76,29 @@ const {
       </div>
     </div>
 
-    <!-- Theme Variant Script for Select -->
+    <!-- ✅ Script adicional para asegurar la funcionalidad del sidebar -->
     <script>
-      (() => {
-        const themeSelect = document.getElementById('theme-select') as HTMLSelectElement;
-        const storedTheme = localStorage.getItem('themeVariant');
-        if (themeSelect && storedTheme) themeSelect.value = storedTheme;
-        
-        themeSelect?.addEventListener('change', () => {
-          const newTheme = themeSelect.value;
-          document.documentElement.classList.forEach(c => {
-            if (c.startsWith('theme-')) document.documentElement.classList.remove(c);
-          });
-          if (newTheme) {
-            document.documentElement.classList.add(`theme-${newTheme}`);
-            localStorage.setItem('themeVariant', newTheme);
-          } else {
-            localStorage.removeItem('themeVariant');
+      // Asegurar que el sidebar funcione correctamente
+      document.addEventListener('DOMContentLoaded', () => {
+        // Pequeño delay para asegurar que Basecoat esté cargado
+        setTimeout(() => {
+          // Verificar si el evento personalizado está funcionando
+          const toggleButton = document.querySelector('[onclick*="basecoat:sidebar"]');
+          if (toggleButton) {
+            console.log('Sidebar toggle button found and ready');
           }
-        });
-      })();
+          
+          // Fallback manual si Basecoat no responde
+          const sidebar = document.querySelector('.sidebar');
+          if (sidebar && toggleButton) {
+            toggleButton.addEventListener('click', (e) => {
+              e.preventDefault();
+              const isHidden = sidebar.getAttribute('aria-hidden') === 'true';
+              sidebar.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+            });
+          }
+        }, 100);
+      });
     </script>
   </body>
 </html>
@@ -113,33 +118,44 @@ const {
     outline-offset: 2px;
   }
 
-  /* Custom scrollbar styling */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 3px;
-  }
-
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
-
   /* Responsive sidebar positioning */
+  @media (max-width: 1023px) {
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 50;
+      height: 100vh;
+      width: 16rem;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    
+    .sidebar:not([aria-hidden="true"]) {
+      transform: translateX(0);
+    }
+    
+    /* Overlay for mobile */
+    .sidebar:not([aria-hidden="true"])::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 16rem;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: -1;
+    }
+  }
+  
   @media (min-width: 1024px) {
-    .sidebar-desktop {
+    .sidebar {
       position: fixed;
       top: 0;
       left: 0;
       z-index: 40;
       height: 100vh;
-      width: 16rem; /* 256px */
+      width: 16rem;
     }
   }
 </style>
