@@ -59,7 +59,7 @@ const {
     
   </head>
 
-  <body class="min-h-screen bg-background font-sans antialiased">
+  <body class="min-h-screen bg-background font-sans antialiased hide-scrollbar">
     <!-- Main Application Container -->
     <div class="relative flex min-h-screen w-full">
       
@@ -94,6 +94,50 @@ const {
   select:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+  }
+  /* Hide scrollbar completely but keep functionality - Brave/Chromium fix */
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+  }
+  
+  html::-webkit-scrollbar-thumb,
+  body::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+  
+  html::-webkit-scrollbar-track,
+  body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  html,
+  body {
+    -ms-overflow-style: none; /* IE y Edge */
+    scrollbar-width: none; /* Firefox */
+    overflow-x: hidden; /* Prevent horizontal scroll */
+  }
+  
+  /* También aplicar a cualquier elemento con scroll */
+  .hide-scrollbar::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+    background: transparent;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+  
+  .hide-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .hide-scrollbar {
+    -ms-overflow-style: none; /* IE y Edge */
+    scrollbar-width: none; /* Firefox */
   }
 
   /* Responsive sidebar positioning */
