@@ -2,7 +2,7 @@ import type { DoctorSpecialization, IDoctor, IDoctorAvailability } from "../../t
 
 
 // Data semilla de doctores
-export const doctorsSeed: IDoctor[] = [
+export const seedDoctors: IDoctor[] = [
   {
     id: "dr-001",
     name: "Dr. María González",
@@ -231,14 +231,14 @@ export const doctorsSeed: IDoctor[] = [
  * Obtiene el número de doctores activos
  */
 export function getActiveDocatorsCount(): number {
-  return doctorsSeed.filter(doctor => doctor.isActive).length;
+  return seedDoctors.filter(doctor => doctor.isActive).length;
 }
 
 /**
  * Obtiene todas las especializaciones únicas disponibles
  */
 export function getSpecializations(): DoctorSpecialization[] {
-  const specializations = new Set(doctorsSeed.map(doctor => doctor.specialization));
+  const specializations = new Set(seedDoctors.map(doctor => doctor.specialization));
   return Array.from(specializations).sort();
 }
 
@@ -246,7 +246,7 @@ export function getSpecializations(): DoctorSpecialization[] {
  * Obtiene doctores filtrados por especialización
  */
 export function getDoctorsBySpecialization(specialization: DoctorSpecialization): IDoctor[] {
-  return doctorsSeed.filter(doctor => 
+  return seedDoctors.filter(doctor => 
     doctor.specialization === specialization && doctor.isActive
   );
 }
@@ -255,21 +255,21 @@ export function getDoctorsBySpecialization(specialization: DoctorSpecialization)
  * Obtiene un doctor por su ID
  */
 export function getDoctorById(id: string): IDoctor | undefined {
-  return doctorsSeed.find(doctor => doctor.id === id);
+  return seedDoctors.find(doctor => doctor.id === id);
 }
 
 /**
  * Obtiene doctores activos
  */
 export function getActiveDoctors(): IDoctor[] {
-  return doctorsSeed.filter(doctor => doctor.isActive);
+  return seedDoctors.filter(doctor => doctor.isActive);
 }
 
 /**
  * Obtiene doctores inactivos
  */
 export function getInactiveDoctors(): IDoctor[] {
-  return doctorsSeed.filter(doctor => !doctor.isActive);
+  return seedDoctors.filter(doctor => !doctor.isActive);
 }
 
 /**
@@ -282,7 +282,7 @@ export function searchDoctors(query: string): IDoctor[] {
     return getActiveDoctors();
   }
   
-  return doctorsSeed.filter(doctor => 
+  return seedDoctors.filter(doctor => 
     doctor.isActive && (
       doctor.name.toLowerCase().includes(searchTerm) ||
       doctor.specialization.toLowerCase().includes(searchTerm) ||
@@ -317,7 +317,7 @@ export function getDoctorsByPrice(): IDoctor[] {
  */
 export function getDoctorsStats() {
   const activeDoctors = getActiveDoctors();
-  const totalDoctors = doctorsSeed.length;
+  const totalDoctors = seedDoctors.length;
   
   const avgRating = activeDoctors.reduce((sum, doctor) => sum + (doctor.rating || 0), 0) / activeDoctors.length;
   const avgExperience = activeDoctors.reduce((sum, doctor) => sum + (doctor.yearsOfExperience || 0), 0) / activeDoctors.length;

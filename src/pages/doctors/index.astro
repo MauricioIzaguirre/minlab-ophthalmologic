@@ -2,11 +2,11 @@
 // src/pages/doctors/index.astro
 import BaseLayout from "../../layouts/BaseLayout.astro";
 import DoctorCard from "../../components/doctors/DoctorCard.astro";
-import { doctorsSeed, getActiveDocatorsCount, getSpecializations } from "../../lib/data/doctors.data";
+import { seedDoctors, getActiveDocatorsCount, getSpecializations } from "../../lib/data/doctors.data";
 
 const activeCount = getActiveDocatorsCount();
 const specializations = getSpecializations();
-const totalCount = doctorsSeed.length;
+const totalCount = seedDoctors.length;
 ---
 
 <BaseLayout 
@@ -78,7 +78,7 @@ const totalCount = doctorsSeed.length;
 
     <!-- Lista de doctores - ESTRUCTURA OPTIMIZADA COMO PRODUCTLIST -->
     <section class="py-2 px-4 max-w-7xl mx-auto">
-      {doctorsSeed.length === 0 ? (
+      {seedDoctors.length === 0 ? (
         <div class="text-center py-12">
           <h3 class="text-lg font-medium text-gray-900 mb-2">
             No hay doctores disponibles
@@ -92,7 +92,7 @@ const totalCount = doctorsSeed.length;
 
           {/* Grid de doctores - MISMO GRID QUE PRODUCTLIST (3-4 por fila) */}
           <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="doctors-grid">
-            {doctorsSeed.map((doctor) => (
+            {seedDoctors.map((doctor) => (
               <DoctorCard 
                 doctor={doctor}
                 
@@ -101,7 +101,7 @@ const totalCount = doctorsSeed.length;
           </div>
 
           {/* Paginación o Load More si fuera necesario */}
-          {doctorsSeed.length >= 20 && (
+          {seedDoctors.length >= 20 && (
             <div class="mt-8 text-center">
               <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                 Ver más especialistas
@@ -127,7 +127,7 @@ const totalCount = doctorsSeed.length;
         <div>
           <p class="text-sm text-muted-foreground">
             Mostrando <span class="font-medium">1</span> a <span class="font-medium">8</span> de{' '}
-            <span class="font-medium">{doctorsSeed.length}</span> doctores
+            <span class="font-medium">{seedDoctors.length}</span> doctores
           </p>
         </div>
         <div class="flex items-center gap-1">
