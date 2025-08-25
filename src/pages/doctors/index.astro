@@ -1,12 +1,252 @@
 ---
+// src/pages/doctors/index.astro
 import BaseLayout from "../../layouts/BaseLayout.astro";
+import DoctorCard from "../../components/doctors/DoctorCard.astro";
+import { doctorsSeed, getActiveDocatorsCount, getSpecializations } from "../../lib/data/doctors.data";
 
-// src/pages/dashboard.astro - Ejemplo de página usando el BaseLayout
+const activeCount = getActiveDocatorsCount();
+const specializations = getSpecializations();
+const totalCount = doctorsSeed.length;
 ---
 
 <BaseLayout 
-  title="Dashboard | Mi Aplicación"
-  description="Panel de control principal con métricas y estadísticas"
+  title="Especialistas Médicos | OptiCare"
+  description="Encuentra y agenda citas con nuestros especialistas médicos certificados"
 >
-  <span>Doctors</span>
+  <div class="space-y-3">
+    <!-- Header de la página-->
+    <header class="flex h-8 w-full items-center justify-between px-4">
+      <div class="flex items-center">
+        <h1 class="text-lg font-semibold">
+          All Doctors
+        </h1>
+      </div>
+      <div class="flex items-center gap-2">
+          <!-- Buscador -->
+          <div class="relative">
+            <input class="input" type="search" placeholder="Search doctors...">
+          </div>
+
+          <!-- Botón agregar doctor -->
+          <button
+            type="button"
+            class="btn-sm-icon-outline border-0 bg-white dark:bg-gray-700 shadow-sm" 
+            aria-label="Add new doctor"
+            data-tooltip="Add doctor"
+            data-side="bottom"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14" />
+              <path d="M12 5v14" />
+            </svg>
+          </button>
+          <button 
+              type="button" 
+              class="btn-sm-icon-outline border-0 bg-white dark:bg-gray-700 shadow-sm" 
+              id="grid-view" 
+              aria-label="Grid view"
+              data-tooltip="Grid view"
+              data-side="bottom"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="7" height="7" x="3" y="3" rx="1"></rect>
+                <rect width="7" height="7" x="14" y="3" rx="1"></rect>
+                <rect width="7" height="7" x="14" y="14" rx="1"></rect>
+                <rect width="7" height="7" x="3" y="14" rx="1"></rect>
+              </svg>
+            </button>
+            
+            <button 
+              type="button" 
+              class="btn-sm-icon-outline border-0 opacity-50 hover:opacity-100" 
+              id="list-view" 
+              aria-label="List view"
+              data-tooltip="List view"
+              data-side="bottom"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+              </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Lista de doctores - ESTRUCTURA OPTIMIZADA COMO PRODUCTLIST -->
+    <section class="py-2 px-4 max-w-7xl mx-auto">
+      {doctorsSeed.length === 0 ? (
+        <div class="text-center py-12">
+          <h3 class="text-lg font-medium text-gray-900 mb-2">
+            No hay doctores disponibles
+          </h3>
+          <p class="text-gray-500">
+            Vuelve más tarde para ver nuestros especialistas.
+          </p>
+        </div>
+      ) : (
+        <>
+
+          {/* Grid de doctores - MISMO GRID QUE PRODUCTLIST (3-4 por fila) */}
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6" id="doctors-grid">
+            {doctorsSeed.map((doctor) => (
+              <DoctorCard 
+                doctor={doctor}
+                
+              />
+            ))}
+          </div>
+
+          {/* Paginación o Load More si fuera necesario */}
+          {doctorsSeed.length >= 20 && (
+            <div class="mt-8 text-center">
+              <button class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                Ver más especialistas
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+
+    <!-- Paginación -->
+    <nav class="flex items-center justify-between border-t border-border pt-4 px-4" aria-label="Pagination">
+      <div class="flex justify-between flex-1 sm:hidden">
+        <button type="button" class="btn-outline" disabled>
+          Anterior
+        </button>
+        <button type="button" class="btn-outline">
+          Siguiente
+        </button>
+      </div>
+      
+      <div class="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm text-muted-foreground">
+            Mostrando <span class="font-medium">1</span> a <span class="font-medium">8</span> de{' '}
+            <span class="font-medium">{doctorsSeed.length}</span> doctores
+          </p>
+        </div>
+        <div class="flex items-center gap-1">
+          <button type="button" class="btn-sm-outline" disabled>
+            <span class="sr-only">Anterior</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m15 18-6-6 6-6"></path>
+            </svg>
+          </button>
+          
+          <button type="button" class="btn-sm text-primary-foreground bg-primary hover:bg-primary/90">
+            1
+          </button>
+          <button type="button" class="btn-sm-outline">
+            2
+          </button>
+          <button type="button" class="btn-sm-outline">
+            3
+          </button>
+          
+          <button type="button" class="btn-sm-outline">
+            <span class="sr-only">Siguiente</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m9 18 6-6-6-6"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </nav>
+  </div>
 </BaseLayout>
+
+<!-- Scripts para funcionalidad básica de UI (solo visual) -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // Toggle entre vista de grid y lista - ACTUALIZADO PARA NUEVO GRID
+    const gridViewBtn = document.getElementById('grid-view');
+    const listViewBtn = document.getElementById('list-view');
+    const doctorsGrid = document.getElementById('doctors-grid');
+    
+    gridViewBtn?.addEventListener('click', () => {
+      // Restaurar grid responsive optimizado
+      doctorsGrid?.classList.remove('grid-cols-1');
+      doctorsGrid?.classList.add('grid-cols-1', 'sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
+      gridViewBtn.classList.remove('opacity-50');
+      listViewBtn?.classList.add('opacity-50');
+    });
+    
+    listViewBtn?.addEventListener('click', () => {
+      // Vista de lista (1 columna)
+      doctorsGrid?.classList.remove('sm:grid-cols-2', 'md:grid-cols-3', 'lg:grid-cols-4');
+      doctorsGrid?.classList.add('grid-cols-1');
+      listViewBtn.classList.remove('opacity-50');
+      gridViewBtn?.classList.add('opacity-50');
+    });
+
+    // Placeholder para filtros - aquí implementarías la lógica real
+    const searchInput = document.getElementById('search');
+    const specializationSelect = document.getElementById('specialization');
+    const statusSelect = document.getElementById('status');
+    const availabilitySelect = document.getElementById('availability');
+    const sortSelect = document.getElementById('sort');
+    
+    // Event listeners para los filtros (placeholder)
+    [searchInput, specializationSelect, statusSelect, availabilitySelect, sortSelect].forEach(element => {
+      element?.addEventListener('change', () => {
+        console.log('Filtro cambiado - Aquí implementarías la lógica de filtrado');
+        // Aquí implementarías la lógica de filtrado real
+      });
+    });
+  });
+</script>
+
+<style>
+  /* Estilos adicionales para mejorar la UX */
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .btn:disabled,
+  .btn-outline:disabled,
+  .btn-sm:disabled,
+  .btn-sm-outline:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+  
+  /* Grid responsive optimizado para mostrar más elementos */
+  #doctors-grid {
+    /* Mobile: 1 columna */
+    /* SM (640px+): 2 columnas */
+    /* MD (768px+): 3 columnas */
+    /* LG (1024px+): 4 columnas */
+  }
+  
+  /* Para pantallas extra grandes, opcional 5 columnas */
+  @media (min-width: 1536px) {
+    #doctors-grid.grid-cols-1.sm\:grid-cols-2.md\:grid-cols-3.lg\:grid-cols-4 {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+  
+  /* Animaciones suaves */
+  #doctors-grid > * {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  /* Mejorar legibilidad en móviles */
+  @media (max-width: 640px) {
+    .card {
+      margin-bottom: 1rem;
+    }
+  }
+  
+  /* Limitar ancho máximo de las cards para evitar que se vean demasiado grandes */
+  #doctors-grid .card {
+    max-width: 280px;
+    margin: 0 auto;
+  }
+</style>
