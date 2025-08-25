@@ -1,0 +1,244 @@
+---
+// src/pages/doctors/availability.astro
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import DailyAvailabilityCalendar from "../../components/availability/DailyAvailabilityCalendar.astro";
+import { getScheduleWithDetails } from "../../lib/data/schedule.data";
+import { generateWeekView, getWeekStart } from "../../lib/utils/availability.utils";
+
+// Obtener datos de horarios con detalles de doctor y ubicación
+const schedulesWithDetails = getScheduleWithDetails();
+
+// Generar vista de la semana actual
+const currentDate = new Date();
+const weekStart = getWeekStart(currentDate);
+const weekView = generateWeekView(schedulesWithDetails, weekStart);
+
+// Encontrar el día con más doctores para mostrar por defecto
+function findBusiestDay() {
+  let busiestDay = weekView.days[0];
+  let maxDoctors = 0;
+  
+  weekView.days.forEach(day => {
+    const uniqueDoctors = new Set(day.schedules.map(s => s.doctorId)).size;
+    if (uniqueDoctors > maxDoctors) {
+      maxDoctors = uniqueDoctors;
+      busiestDay = day;
+    }
+  });
+  
+  return busiestDay;
+}
+
+const selectedDate = findBusiestDay().date;
+
+// Estadísticas rápidas
+const totalSchedules = schedulesWithDetails.length;
+const activeDoctors = new Set(schedulesWithDetails.filter(s => s.isActive).map(s => s.doctorId)).size;
+const activeLocations = new Set(schedulesWithDetails.filter(s => s.isActive).map(s => s.locationId)).size;
+---
+
+<BaseLayout 
+  title="Disponibilidad Médica | OptiCare"
+  description="Consulta la disponibilidad de nuestros especialistas médicos por semana"
+>
+  <div class="space-y-6">
+    
+    <!-- Stats cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 px-4">
+      <div class="card p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-muted-foreground">Horarios Activos</p>
+            <p class="text-2xl font-semibold text-foreground">{totalSchedules}</p>
+          </div>
+          <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary">
+              <rect width="18" height="18" x="3" y="4" rx="2"/>
+              <path d="M3 10h18"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-muted-foreground">Doctores Disponibles</p>
+            <p class="text-2xl font-semibold text-foreground">{activeDoctors}</p>
+          </div>
+          <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600 dark:text-blue-400">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="m22 21-3-3"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      
+      <div class="card p-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm text-muted-foreground">Ubicaciones Activas</p>
+            <p class="text-2xl font-semibold text-foreground">{activeLocations}</p>
+          </div>
+          <div class="w-10 h-10 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-600 dark:text-green-400">
+              <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+        <!-- Filtros del calendario -->
+    
+    <!-- Selector de fecha -->
+    <div class="px-4">
+      <div class="bg-card rounded-lg border border-border p-4 mb-6">
+        <div class="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h3 class="text-lg font-semibold text-foreground">Seleccionar Fecha</h3>
+            <p class="text-sm text-muted-foreground">Navega entre los días de la semana</p>
+          </div>
+          
+          <!-- Navegación por días -->
+          <div class="flex items-center gap-2">
+            {weekView.days.map((day, index) => {
+              const doctorsCount = new Set(day.schedules.map(s => s.doctorId)).size;
+              const isSelected = day.date.toDateString() === selectedDate.toDateString();
+              const isToday = day.date.toDateString() === new Date().toDateString();
+              
+              return (
+                <button 
+                  class={`
+                    px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150
+                    ${isSelected 
+                      ? 'bg-primary text-primary-foreground shadow-sm' 
+                      : 'bg-background hover:bg-muted border border-border hover:border-primary/30'
+                    }
+                  `}
+                  data-date={day.date.toISOString()}
+                  data-day-selector
+                >
+                  <div class="text-center">
+                    <div class="font-semibold">
+                      {day.dayName}
+                    </div>
+                    <div class="text-xs opacity-80">
+                      {day.date.getDate()}
+                    </div>
+                    {isToday && (
+                      <div class="text-xs opacity-70 mt-1">Hoy</div>
+                    )}
+                    {doctorsCount > 0 && (
+                      <div class="text-xs opacity-70 mt-1">
+                        {doctorsCount} Dr{doctorsCount > 1 ? 's' : ''}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Calendario principal -->
+    <div class="px-4">
+      <DailyAvailabilityCalendar 
+        weekView={weekView}
+        selectedDate={selectedDate}
+      />
+    </div>
+    
+    <!-- Loading y estados -->
+    <div id="calendar-loading" class="hidden">
+      <div class="card mx-4 p-8">
+        <div class="flex items-center justify-center">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <span class="ml-3 text-muted-foreground">Cargando disponibilidad...</span>
+        </div>
+      </div>
+    </div>
+    
+    <div id="calendar-empty" class="hidden">
+      <div class="card mx-4 p-8 text-center">
+        <div class="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground">
+            <rect width="18" height="18" x="3" y="4" rx="2"/>
+            <path d="M3 10h18"/>
+            <path d="M8 2v4"/>
+            <path d="M16 2v4"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-foreground mb-2">
+          No hay horarios disponibles
+        </h3>
+        <p class="text-muted-foreground">
+          Ajusta los filtros para ver más opciones de disponibilidad.
+        </p>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<!-- Script para navegación de días (Astro Island) -->
+
+
+
+<style>
+  /* Animaciones y transiciones suaves */
+  .card {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .card:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  /* Loading states */
+  #calendar-loading,
+  #calendar-empty {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .space-y-6 {
+      gap: 1rem;
+    }
+    
+    .px-4 {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+  }
+  
+  /* Stats cards hover effects */
+  .card:nth-child(1):hover {
+    border-color: hsl(var(--primary));
+  }
+  
+  .card:nth-child(2):hover {
+    border-color: rgb(59 130 246);
+  }
+  
+  .card:nth-child(3):hover {
+    border-color: rgb(34 197 94);
+  }
+</style>

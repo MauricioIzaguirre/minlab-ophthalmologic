@@ -1,0 +1,150 @@
+---
+// src/components/availability/CalendarHeader.astro
+import type { IWeekView } from "../../types";
+
+export interface Props {
+  weekView: IWeekView;
+}
+
+const { weekView } = Astro.props;
+
+// Formatear fechas para mostrar
+const weekRange = `${weekView.weekStart.toLocaleDateString('es-ES', { 
+  month: 'short', 
+  day: 'numeric' 
+})} - ${weekView.weekEnd.toLocaleDateString('es-ES', { 
+  month: 'short', 
+  day: 'numeric', 
+  year: 'numeric' 
+})}`;
+
+const currentWeek = weekView.weekStart.toLocaleDateString('es-ES', {
+  year: 'numeric',
+  month: 'long'
+});
+---
+
+<div class="bg-background border-b border-border p-6">
+  <div class="flex items-center justify-between">
+    
+    <!-- Título y rango de fechas -->
+    <div class="flex items-center gap-6">
+      <div>
+        <h1 class="text-2xl font-semibold text-foreground">
+          Disponibilidad Médica
+        </h1>
+        <p class="text-sm text-muted-foreground mt-1">
+          Semana del {weekRange}
+        </p>
+      </div>
+      
+      <!-- Indicador de mes actual -->
+      <div class="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-medium">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 2v4" />
+          <path d="M16 2v4" />
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <path d="M3 10h18" />
+        </svg>
+        {currentWeek}
+      </div>
+    </div>
+    
+    <!-- Controles de navegación -->
+    <div class="flex items-center gap-2">
+      
+      <!-- Botón semana anterior -->
+      <button 
+        type="button"
+        class="btn-sm-icon-outline border-0 bg-background hover:bg-muted shadow-sm"
+        aria-label="Semana anterior"
+        data-tooltip="Semana anterior"
+        data-side="bottom"
+        id="prev-week"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m15 18-6-6 6-6" />
+        </svg>
+      </button>
+      
+      <!-- Botón hoy -->
+      <button 
+        type="button"
+        class="btn-sm-outline px-4 text-sm font-medium"
+        id="today-btn"
+      >
+        Hoy
+      </button>
+      
+      <!-- Botón semana siguiente -->
+      <button 
+        type="button"
+        class="btn-sm-icon-outline border-0 bg-background hover:bg-muted shadow-sm"
+        aria-label="Semana siguiente"
+        data-tooltip="Semana siguiente"
+        data-side="bottom"
+        id="next-week"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m9 18 6-6-6-6" />
+        </svg>
+      </button>
+      
+      <div class="w-px h-6 bg-border mx-2"></div>
+      
+      <!-- Botón vista de día -->
+      <button 
+        type="button"
+        class="btn-sm-icon-outline border-0 opacity-50 hover:opacity-100"
+        aria-label="Vista diaria"
+        data-tooltip="Vista diaria"
+        data-side="bottom"
+        id="day-view"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <path d="M3 10h18" />
+          <path d="M8 2v4" />
+          <path d="M16 2v4" />
+          <path d="M10 16l2-2 2 2" />
+        </svg>
+      </button>
+      
+      <!-- Botón vista de semana (activo) -->
+      <button 
+        type="button"
+        class="btn-sm-icon-outline border-0 bg-primary/10 text-primary"
+        aria-label="Vista semanal"
+        data-tooltip="Vista semanal"
+        data-side="bottom"
+        id="week-view"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <path d="M3 10h18" />
+          <path d="M8 2v4" />
+          <path d="M16 2v4" />
+        </svg>
+      </button>
+      
+      <!-- Botón vista de mes -->
+      <button 
+        type="button"
+        class="btn-sm-icon-outline border-0 opacity-50 hover:opacity-100"
+        aria-label="Vista mensual"
+        data-tooltip="Vista mensual"
+        data-side="bottom"
+        id="month-view"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect width="18" height="18" x="3" y="4" rx="2" />
+          <path d="M3 10h18" />
+          <path d="M8 2v4" />
+          <path d="M16 2v4" />
+          <path d="M8 14h8" />
+          <path d="M8 18h5" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>

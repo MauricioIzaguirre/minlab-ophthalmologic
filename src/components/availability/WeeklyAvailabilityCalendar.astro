@@ -1,0 +1,225 @@
+---
+// src/components/availability/WeeklyAvailabilityCalendar.astro
+import type { IWeekView } from "../../types";
+import CalendarHeader from "./CalendarHeader.astro";
+export interface Props {
+  weekView: IWeekView;
+  selectedDoctor?: string;
+  selectedLocation?: string;
+  selectedSpecialization?: string;
+}
+
+const { weekView, selectedDoctor, selectedLocation, selectedSpecialization } = Astro.props;
+
+// Generar slots de tiempo (cada 30 minutos de 7:00 AM a 8:00 PM)
+const timeSlots: string[] = [];
+for (let hour = 7; hour <= 20; hour++) {
+  for (let minute = 0; minute < 60; minute += 30) {
+    const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+    timeSlots.push(timeString);
+  }
+}
+
+// Función para verificar si hay un horario activo en un slot específico
+function hasScheduleAtTime(daySchedules: any[], timeSlot: string): any[] {
+  return daySchedules.filter(schedule => {
+    const startMinutes = timeToMinutes(schedule.startTime);
+    const endMinutes = timeToMinutes(schedule.endTime);
+    const slotMinutes = timeToMinutes(timeSlot);
+    
+    // Verificar si el slot está dentro del horario (excluyendo break time)
+    const isInWorkingHours = slotMinutes >= startMinutes && slotMinutes < endMinutes;
+    
+    if (!isInWorkingHours) return false;
+    
+    // Verificar si no está en break time
+    if (schedule.breakTime) {
+      const breakStart = timeToMinutes(schedule.breakTime.start);
+      const breakEnd = timeToMinutes(schedule.breakTime.end);
+      return !(slotMinutes >= breakStart && slotMinutes < breakEnd);
+    }
+    
+    return true;
+  });
+}
+
+function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+---
+
+<div class="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
+  <!-- Header del calendario -->
+  <CalendarHeader weekView={weekView} />
+  
+  <!-- Grid principal del calendario -->
+  <div class="relative">
+    <!-- Contenedor con scroll horizontal en móviles -->
+    <div class="overflow-x-auto">
+      <div class="min-w-[800px]">
+        
+        <!-- Grid de tiempo y días -->
+        <div class="grid grid-cols-8 border-t border-border">
+          
+          <!-- Columna de horas (izquierda) -->
+          <div class="bg-muted/20 border-r border-border">
+            <div class="h-12 border-b border-border flex items-center justify-center text-xs font-medium text-muted-foreground">
+              Time
+            </div>
+            
+            <!-- Slots de tiempo -->
+            {timeSlots.map((timeSlot) => (
+              <div class="h-16 border-b border-border/50 flex items-center justify-center text-xs text-muted-foreground px-2">
+                {timeSlot}
+              </div>
+            ))}
+          </div>
+          
+          <!-- Columnas de días -->
+          {weekView.days.map((day, dayIndex) => (
+            <div class="border-r border-border last:border-r-0">
+              
+              <!-- Header del día -->
+              <div class="h-12 border-b border-border bg-background flex flex-col items-center justify-center px-2">
+                <span class="text-xs font-medium text-muted-foreground">
+                  {day.dayName}
+                </span>
+                <span class="text-sm font-semibold text-foreground">
+                  {day.date.getDate()}
+                </span>
+              </div>
+              
+              <!-- Slots del día -->
+              {timeSlots.map((timeSlot, timeIndex) => {
+                const schedulesAtTime = hasScheduleAtTime(day.schedules, timeSlot);
+                const isCurrentTime = false; // TODO: implementar lógica de tiempo actual
+                
+                return (
+                  <div 
+                    class={`
+                      h-16 border-b border-border/50 relative group cursor-pointer
+                      hover:bg-accent/20 transition-colors duration-150
+                      ${isCurrentTime ? 'bg-primary/5 border-primary/20' : ''}
+                    `}
+                  >
+                    
+                    {schedulesAtTime.length > 0 && (
+                      <div class="absolute inset-1 space-y-0.5">
+                        {schedulesAtTime.slice(0, 2).map((schedule, idx) => (
+                          <div 
+                            class={`
+                              px-2 py-1 rounded text-xs font-medium truncate
+                              ${
+                                schedule.doctor.specialization === 'Cardiología' 
+                                  ? 'bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800' 
+                                : schedule.doctor.specialization === 'Pediatría'
+                                  ? 'bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+                                : schedule.doctor.specialization === 'Oftalmología'
+                                  ? 'bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
+                                : schedule.doctor.specialization === 'Neurología'
+                                  ? 'bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800'
+                                : schedule.doctor.specialization === 'Dermatología'
+                                  ? 'bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-900/20 dark:text-orange-300 dark:border-orange-800'
+                                : 'bg-gray-100 text-gray-700 border border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'
+                              }
+                            `}
+                            title={`${schedule.doctor.name} - ${schedule.doctor.specialization}`}
+                          >
+                            <div class="flex items-center gap-1">
+                              <div class="w-1.5 h-1.5 rounded-full bg-current opacity-70"></div>
+                              <span class="truncate">
+                                {schedule.doctor.name.split(' ')[0]}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {schedulesAtTime.length > 2 && (
+                          <div class="text-xs text-muted-foreground px-2">
+                            +{schedulesAtTime.length - 2} more
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {schedulesAtTime.length === 0 && (
+                      <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="w-2 h-2 rounded-full bg-muted-foreground/20"></div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Indicador de tiempo actual -->
+    <div class="absolute left-0 right-0 pointer-events-none z-10 hidden" id="current-time-indicator">
+      <div class="h-0.5 bg-red-500 relative">
+        <div class="absolute -left-1 -top-1 w-2 h-2 bg-red-500 rounded-full"></div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Leyenda de colores -->
+  <div class="bg-muted/10 border-t border-border p-4">
+    <div class="flex flex-wrap gap-4 items-center justify-center text-xs">
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded bg-red-200 border border-red-300 dark:bg-red-900/20 dark:border-red-800"></div>
+        <span class="text-muted-foreground">Cardiología</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded bg-blue-200 border border-blue-300 dark:bg-blue-900/20 dark:border-blue-800"></div>
+        <span class="text-muted-foreground">Pediatría</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded bg-green-200 border border-green-300 dark:bg-green-900/20 dark:border-green-800"></div>
+        <span class="text-muted-foreground">Oftalmología</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded bg-purple-200 border border-purple-300 dark:bg-purple-900/20 dark:border-purple-800"></div>
+        <span class="text-muted-foreground">Neurología</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="w-3 h-3 rounded bg-orange-200 border border-orange-300 dark:bg-orange-900/20 dark:border-orange-800"></div>
+        <span class="text-muted-foreground">Dermatología</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Scroll suave en móviles */
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 2px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+  
+  /* Animaciones suaves */
+  .group:hover .opacity-0 {
+    opacity: 1;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 640px) {
+    .min-w-[800px] {
+      min-width: 600px;
+    }
+  }
+</style>
