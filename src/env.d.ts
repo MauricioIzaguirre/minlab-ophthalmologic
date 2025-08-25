@@ -12,6 +12,8 @@ declare namespace App {
       };
     };
     isAuthenticated: boolean;
+    // Agregar función query para las actions
+    query: (text: string, params?: any[]) => Promise<any>;
   }
 
   interface SessionData {

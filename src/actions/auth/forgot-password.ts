@@ -16,7 +16,7 @@ export const forgotPassword = defineAction({
       }
 
       // Configure email transporter
-      const transporter = nodemailer.createTransporter({
+      const transporter = nodemailer.createTransport({
         host: import.meta.env.SMTP_HOST,
         port: import.meta.env.SMTP_PORT,
         secure: false,

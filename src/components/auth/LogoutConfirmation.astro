@@ -1,7 +1,27 @@
 ---
-// LogoutConfirmation.astro - Componente de confirmación de logout
+import { actions } from 'astro:actions';
+
+// Obtener datos del usuario desde locals
+const user = Astro.locals.user;
+
+// Si no hay usuario autenticado, redirigir
+if (!user) {
+  return Astro.redirect('/auth/login');
+}
+
+// Obtener resultado de la action si existe
+const result = Astro.getActionResult(actions.auth.logout);
+
+// Si el logout fue exitoso, redirigir
+if (result && !result.error) {
+  return Astro.redirect('/auth/login?message=logged-out');
+}
+
+// Generar iniciales del usuario
+const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase();
 ---
-<div class="card w-full text-center">
+
+<div class="card w-full text-center" id="logout-card">
   <header>
     <div class="flex justify-center mb-4">
       <div class="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
@@ -10,39 +30,40 @@
         </svg>
       </div>
     </div>
-    <h2>Sign out of your account</h2>
-    <p>Are you sure you want to sign out? You'll need to sign in again to access your account.</p>
+    <h2>Cerrar sesión</h2>
+    <p>¿Estás seguro de que quieres cerrar tu sesión? Necesitarás iniciar sesión nuevamente para acceder a tu cuenta.</p>
   </header>
   
   <section class="my-6">
-    <!-- User info card -->
+    <!-- Información del usuario -->
     <div class="bg-muted/50 rounded-lg p-4 mb-6">
       <div class="flex items-center justify-center gap-3">
         <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
-          JD
+          {initials}
         </div>
         <div class="text-left">
-          <p class="font-semibold">John Doe</p>
-          <p class="text-sm text-muted-foreground">john.doe@example.com</p>
+          <p class="font-semibold">{user.firstName} {user.lastName}</p>
+          <p class="text-sm text-muted-foreground">{user.email}</p>
+          <p class="text-xs text-muted-foreground capitalize">{user.role.name}</p>
         </div>
       </div>
     </div>
     
-    <!-- Quick actions before logout -->
+    <!-- Estado antes del logout -->
     <div class="grid gap-2 text-sm">
-      <p class="text-muted-foreground">Before you go:</p>
+      <p class="text-muted-foreground">Antes de salir:</p>
       <div class="flex items-center justify-center gap-4 text-xs">
         <span class="flex items-center gap-1">
           <svg class="h-3 w-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
           </svg>
-          All changes saved
+          Cambios guardados
         </span>
         <span class="flex items-center gap-1">
           <svg class="h-3 w-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
           </svg>
-          Data synced
+          Datos sincronizados
         </span>
       </div>
     </div>
@@ -51,60 +72,61 @@
   <footer class="flex flex-col items-center gap-3">
     <div class="flex gap-3 w-full">
       <button type="button" class="btn-outline flex-1" id="cancel-logout">
-        Cancel
+        Cancelar
       </button>
-      <button type="button" class="btn flex-1 bg-destructive text-destructive-foreground hover:bg-destructive/90" id="confirm-logout">
-        Sign out
-      </button>
+      <form method="POST" action={actions.auth.logout} class="flex-1">
+        <button type="submit" class="btn w-full bg-destructive text-destructive-foreground hover:bg-destructive/90" id="confirm-logout">
+          Cerrar sesión
+        </button>
+      </form>
     </div>
     
     <p class="text-xs text-muted-foreground">
-      You can always sign back in with your credentials
+      Siempre puedes iniciar sesión nuevamente con tus credenciales
     </p>
   </footer>
 </div>
 
-<!-- Loading state (hidden by default) -->
+<!-- Estado de carga (oculto por defecto) -->
 <div class="card w-full text-center hidden" id="logout-loading">
   <div class="flex flex-col items-center gap-4 py-8">
     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    <p class="text-muted-foreground">Signing you out...</p>
+    <p class="text-muted-foreground">Cerrando sesión...</p>
   </div>
 </div>
 
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    const confirmButton = document.getElementById('confirm-logout');
-    const cancelButton = document.getElementById('cancel-logout');
-    const logoutCard = document.querySelector('.card:not(.hidden)');
-    const loadingCard = document.getElementById('logout-loading');
-    
-    cancelButton?.addEventListener('click', () => {
-      // Redirect back to dashboard or previous page
+  const confirmButton = document.getElementById('confirm-logout');
+  const cancelButton = document.getElementById('cancel-logout');
+  const logoutCard = document.getElementById('logout-card');
+  const loadingCard = document.getElementById('logout-loading');
+  const form = document.querySelector('form');
+  
+  // Botón cancelar
+  cancelButton?.addEventListener('click', () => {
+    // Redirigir al dashboard o página anterior
+    const referrer = document.referrer;
+    if (referrer && referrer.includes(window.location.origin)) {
       window.history.back();
-    });
-    
-    confirmButton?.addEventListener('click', () => {
-      // Show loading state
-      logoutCard?.classList.add('hidden');
-      loadingCard?.classList.remove('hidden');
-      
-      // Simulate logout process
-      setTimeout(() => {
-        // Clear any stored session data
-        localStorage.removeItem('user-session');
-        sessionStorage.clear();
-        
-        // Redirect to login page
-        window.location.href = '/auth/login?message=logged-out';
-      }, 2000);
-    });
-    
-    // Handle ESC key to cancel
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        window.history.back();
-      }
-    });
+    } else {
+      window.location.href = '/dashboard';
+    }
   });
+  
+  // Manejo del formulario de logout
+  form?.addEventListener('submit', function(e) {
+    // Mostrar estado de carga
+    logoutCard?.classList.add('hidden');
+    loadingCard?.classList.remove('hidden');
+  });
+  
+  // Manejar tecla ESC para cancelar
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      cancelButton?.click();
+    }
+  });
+  
+  // Focus en el botón cancelar por defecto (para accesibilidad)
+  cancelButton?.focus();
 </script>

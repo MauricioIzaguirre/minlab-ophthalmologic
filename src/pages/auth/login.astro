@@ -1,11 +1,17 @@
+<!-- src/pages/auth/login.astro -->
 ---
-// src/pages/auth/login.astro
 import LoginForm from "../../components/auth/LoginForm.astro";
 import AuthLayout from "../../layouts/AuthLayout.astro";
+
+// Si ya está autenticado, redirigir
+if (Astro.locals.isAuthenticated) {
+  const redirect = Astro.url.searchParams.get('redirect') || '/dashboard';
+  return Astro.redirect(redirect);
+}
 ---
 
 <AuthLayout 
-  title="Iniciar Sesión | Mi App"
+  title="Iniciar Sesión | MinLab Ophthalmologic"
   description="Accede a tu cuenta de forma segura y continúa donde lo dejaste"
 >
   <LoginForm />

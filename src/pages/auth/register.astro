@@ -2,11 +2,16 @@
 ---
 import RegisterForm from "../../components/auth/RegisterForm.astro";
 import AuthLayout from "../../layouts/AuthLayout.astro";
+
+// Si ya está autenticado, redirigir
+if (Astro.locals.isAuthenticated) {
+  return Astro.redirect('/dashboard');
+}
 ---
 
 <AuthLayout 
-  title="Crear Cuenta | Mi App"
-  description="Crea tu nueva cuenta y únete a nuestra comunidad"
+  title="Crear Cuenta | MinLab Ophthalmologic"
+  description="Crea tu nueva cuenta y únete a nuestra plataforma médica"
 >
   <RegisterForm />
 </AuthLayout>

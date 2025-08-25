@@ -2,10 +2,16 @@
 ---
 import LogoutConfirmation from "../../components/auth/LogoutConfirmation.astro";
 import AuthLayout from "../../layouts/AuthLayout.astro";
+
+// Verificar que está autenticado
+if (!Astro.locals.isAuthenticated) {
+  return Astro.redirect('/auth/login');
+}
 ---
 
 <AuthLayout 
-  title="Cerrar Sesión | Mi App"
+  title="Cerrar Sesión | MinLab Ophthalmologic"
   description="Confirma el cierre de sesión de tu cuenta"
 >
   <LogoutConfirmation />
+</AuthLayout>

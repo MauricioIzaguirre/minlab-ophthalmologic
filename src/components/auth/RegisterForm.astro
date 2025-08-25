@@ -1,48 +1,182 @@
 ---
-// RegisterForm.astro - Componente de formulario de registro
+import { actions, isInputError } from 'astro:actions';
+
+// Obtener resultado de la action si existe
+const result = Astro.getActionResult(actions.auth.register);
+const inputErrors = isInputError(result?.error) ? result.error.fields : {};
 ---
+
 <div class="card w-full">
   <header>
-    <h2>Create your account</h2>
-    <p>Enter your details below to create your new account</p>
+    <h2>Crear tu cuenta</h2>
+    <p>Completa los siguientes datos para crear tu nueva cuenta</p>
   </header>
+  
+  <!-- Mensaje de error general -->
+  {result?.error && !isInputError(result.error) && (
+    <div class="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md mb-4">
+      <p class="text-sm">{result.error.message}</p>
+    </div>
+  )}
+  
+  <!-- Mensaje de éxito -->
+  {result && !result.error && (
+    <div class="bg-primary/10 border border-primary/20 text-primary px-4 py-3 rounded-md mb-4">
+      <p class="text-sm">¡Cuenta creada exitosamente! Redirigiendo...</p>
+    </div>
+  )}
+  
   <section>
-    <form class="form grid gap-6">
+    <form method="POST" action={actions.auth.register} class="form grid gap-6">
       <div class="grid grid-cols-2 gap-4">
         <div class="grid gap-2">
-          <label for="register-first-name">First name</label>
-          <input type="text" id="register-first-name" required>
+          <label for="firstName">Nombre</label>
+          <input 
+            type="text" 
+            id="firstName" 
+            name="firstName"
+            placeholder="Tu nombre"
+            required
+            class={inputErrors.firstName ? 'border-destructive focus:ring-destructive' : ''}
+          />
+          {inputErrors.firstName && (
+            <p class="text-sm text-destructive">{inputErrors.firstName.join(', ')}</p>
+          )}
         </div>
         <div class="grid gap-2">
-          <label for="register-last-name">Last name</label>
-          <input type="text" id="register-last-name" required>
+          <label for="lastName">Apellido</label>
+          <input 
+            type="text" 
+            id="lastName" 
+            name="lastName"
+            placeholder="Tu apellido"
+            required
+            class={inputErrors.lastName ? 'border-destructive focus:ring-destructive' : ''}
+          />
+          {inputErrors.lastName && (
+            <p class="text-sm text-destructive">{inputErrors.lastName.join(', ')}</p>
+          )}
         </div>
       </div>
+      
       <div class="grid gap-2">
-        <label for="register-email">Email</label>
-        <input type="email" id="register-email" required>
+        <label for="email">Email</label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email"
+          placeholder="tu@email.com"
+          required
+          class={inputErrors.email ? 'border-destructive focus:ring-destructive' : ''}
+        />
+        {inputErrors.email && (
+          <p class="text-sm text-destructive">{inputErrors.email.join(', ')}</p>
+        )}
       </div>
+      
       <div class="grid gap-2">
-        <label for="register-password">Password</label>
-        <input type="password" id="register-password" required>
+        <label for="password">Contraseña</label>
+        <input 
+          type="password" 
+          id="password" 
+          name="password"
+          placeholder="Mínimo 8 caracteres"
+          required
+          class={inputErrors.password ? 'border-destructive focus:ring-destructive' : ''}
+        />
+        {inputErrors.password && (
+          <p class="text-sm text-destructive">{inputErrors.password.join(', ')}</p>
+        )}
+        <div class="text-xs text-muted-foreground">
+          • Al menos 8 caracteres
+          • Una mayúscula, una minúscula y un número
+        </div>
       </div>
+      
       <div class="grid gap-2">
-        <label for="register-confirm-password">Confirm password</label>
-        <input type="password" id="register-confirm-password" required>
+        <label for="confirmPassword">Confirmar contraseña</label>
+        <input 
+          type="password" 
+          id="confirmPassword" 
+          name="confirmPassword"
+          placeholder="Confirma tu contraseña"
+          required
+          class={inputErrors.confirmPassword ? 'border-destructive focus:ring-destructive' : ''}
+        />
+        {inputErrors.confirmPassword && (
+          <p class="text-sm text-destructive">{inputErrors.confirmPassword.join(', ')}</p>
+        )}
       </div>
+      
       <div class="flex items-center space-x-2">
-        <input type="checkbox" id="register-terms" required class="rounded">
-        <label for="register-terms" class="text-sm">
-          I agree to the <a href="#" class="underline underline-offset-4 hover:text-primary">Terms of Service</a> and <a href="#" class="underline underline-offset-4 hover:text-primary">Privacy Policy</a>
+        <input 
+          type="checkbox" 
+          id="terms" 
+          name="terms"
+          value="true"
+          required 
+          class="rounded"
+        />
+        <label for="terms" class="text-sm">
+          Acepto los 
+          <a href="/terms" class="underline underline-offset-4 hover:text-primary">Términos de Servicio</a> 
+          y la 
+          <a href="/privacy" class="underline underline-offset-4 hover:text-primary">Política de Privacidad</a>
         </label>
       </div>
+      {inputErrors.terms && (
+        <p class="text-sm text-destructive">{inputErrors.terms.join(', ')}</p>
+      )}
     </form>
   </section>
+  
   <footer class="flex flex-col items-center gap-2">
-    <button type="button" class="btn w-full">Create account</button>
-    <button type="button" class="btn-outline w-full">Sign up with Google</button>
+    <button type="submit" form="register-form" class="btn w-full">
+      Crear cuenta
+    </button>
+    
     <p class="mt-4 text-center text-sm">
-      Already have an account? <a href="/auth/login" class="underline underline-offset-4 hover:underline">Sign in</a>
+      ¿Ya tienes cuenta? 
+      <a href="/auth/login" class="underline underline-offset-4 hover:underline">Inicia sesión</a>
     </p>
   </footer>
 </div>
+
+<script>
+  // Redireccionar en caso de éxito
+  const successMessage = document.querySelector('.bg-primary\\/10');
+  if (successMessage) {
+    setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 1500);
+  }
+  
+  // Validación en tiempo real de contraseñas
+  const password = document.getElementById('password');
+  const confirmPassword = document.getElementById('confirmPassword');
+  const form = document.querySelector('form');
+  const submitButton = form?.querySelector('button[type="submit"]');
+  
+  // Validar que las contraseñas coincidan
+  function validatePasswords() {
+    if (password && confirmPassword) {
+      if (password.value && confirmPassword.value && password.value !== confirmPassword.value) {
+        confirmPassword.setCustomValidity('Las contraseñas no coinciden');
+      } else {
+        confirmPassword.setCustomValidity('');
+      }
+    }
+  }
+  
+  password?.addEventListener('input', validatePasswords);
+  confirmPassword?.addEventListener('input', validatePasswords);
+  
+  // Manejo del formulario
+  form?.addEventListener('submit', function(e) {
+    validatePasswords();
+    if (submitButton) {
+      submitButton.textContent = 'Creando cuenta...';
+      submitButton.disabled = true;
+    }
+  });
+</script>
