@@ -1,5 +1,6 @@
 ---
-import { actions, isInputError } from 'astro:actions';
+import { isInputError } from 'astro:actions';
+import { server as actions } from '../../actions/index.js';
 
 // Obtener resultado de la action si existe
 const result = Astro.getActionResult(actions.auth.register);
@@ -27,7 +28,7 @@ const inputErrors = isInputError(result?.error) ? result.error.fields : {};
   )}
   
   <section>
-    <form method="POST" action={actions.auth.register} class="form grid gap-6">
+    <form method="POST" action={actions.auth.register} class="form grid gap-6" id="register-form">
       <div class="grid grid-cols-2 gap-4">
         <div class="grid gap-2">
           <label for="firstName">Nombre</label>
@@ -144,7 +145,7 @@ const inputErrors = isInputError(result?.error) ? result.error.fields : {};
 
 <script>
   // Redireccionar en caso de éxito
-  const successMessage = document.querySelector('.bg-primary\\/10');
+  const successMessage = document.querySelector('.bg-primary\\/10') as HTMLElement | null;
   if (successMessage) {
     setTimeout(() => {
       window.location.href = '/dashboard';
@@ -152,10 +153,10 @@ const inputErrors = isInputError(result?.error) ? result.error.fields : {};
   }
   
   // Validación en tiempo real de contraseñas
-  const password = document.getElementById('password');
-  const confirmPassword = document.getElementById('confirmPassword');
-  const form = document.querySelector('form');
-  const submitButton = form?.querySelector('button[type="submit"]');
+  const password = document.getElementById('password') as HTMLInputElement | null;
+  const confirmPassword = document.getElementById('confirmPassword') as HTMLInputElement | null;
+  const form = document.querySelector('form') as HTMLFormElement | null;
+  const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement | null;
   
   // Validar que las contraseñas coincidan
   function validatePasswords() {

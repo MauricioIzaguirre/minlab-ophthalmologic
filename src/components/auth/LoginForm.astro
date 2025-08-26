@@ -1,5 +1,6 @@
 ---
-import { actions, isInputError } from 'astro:actions';
+import { isInputError } from 'astro:actions';
+import { server as actions } from '../../actions/index.js';
 
 // Obtener resultado de la action si existe
 const result = Astro.getActionResult(actions.auth.login);
@@ -27,7 +28,7 @@ const inputErrors = isInputError(result?.error) ? result.error.fields : {};
   )}
   
   <section>
-    <form method="POST" action={actions.auth.login} class="form grid gap-6">
+    <form method="POST" action={actions.auth.login} class="form grid gap-6" id="login-form">
       <div class="grid gap-2">
         <label for="email">Email</label>
         <input 
@@ -84,7 +85,7 @@ const inputErrors = isInputError(result?.error) ? result.error.fields : {};
 
 <script>
   // Redireccionar en caso de éxito
-  const successMessage = document.querySelector('.bg-primary\\/10');
+  const successMessage = document.querySelector('.bg-primary\\/10') as HTMLElement | null;
   if (successMessage) {
     setTimeout(() => {
       const urlParams = new URLSearchParams(window.location.search);
@@ -94,8 +95,8 @@ const inputErrors = isInputError(result?.error) ? result.error.fields : {};
   }
   
   // Manejo del formulario con JavaScript para mejor UX
-  const form = document.querySelector('form');
-  const submitButton = form?.querySelector('button[type="submit"]');
+  const form = document.querySelector('form') as HTMLFormElement | null;
+  const submitButton = document.querySelector('button[type="submit"]') as HTMLButtonElement | null;
   
   form?.addEventListener('submit', function(e) {
     if (submitButton) {

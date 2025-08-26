@@ -1,5 +1,6 @@
 ---
-import { actions } from 'astro:actions';
+import { isInputError } from 'astro:actions';
+import { server as actions } from '../../actions/index.js';
 
 // Obtener datos del usuario desde locals
 const user = Astro.locals.user;
@@ -96,11 +97,11 @@ const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpper
 </div>
 
 <script>
-  const confirmButton = document.getElementById('confirm-logout');
-  const cancelButton = document.getElementById('cancel-logout');
-  const logoutCard = document.getElementById('logout-card');
-  const loadingCard = document.getElementById('logout-loading');
-  const form = document.querySelector('form');
+  const confirmButton = document.getElementById('confirm-logout') as HTMLButtonElement | null;
+  const cancelButton = document.getElementById('cancel-logout') as HTMLButtonElement | null;
+  const logoutCard = document.getElementById('logout-card') as HTMLElement | null;
+  const loadingCard = document.getElementById('logout-loading') as HTMLElement | null;
+  const form = document.querySelector('form') as HTMLFormElement | null;
   
   // Botón cancelar
   cancelButton?.addEventListener('click', () => {
