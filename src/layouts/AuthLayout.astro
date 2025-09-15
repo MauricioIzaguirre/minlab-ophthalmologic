@@ -8,13 +8,13 @@ export interface Props {
 }
 
 const { 
-  title = "Autenticación", 
-  description = "Accede a tu cuenta de forma segura" 
+  title = "Authentication", 
+  description = "Access your account securely" 
 } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="es" class="theme-claude">
+<html lang="en" class="theme-claude">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -65,10 +65,10 @@ const {
           </div>
           
           <h1 class="text-3xl font-bold tracking-tight text-foreground">
-            Bienvenido de vuelta
+            Welcome back
           </h1>
           <p class="mt-4 text-lg text-muted-foreground">
-            Accede a tu cuenta y continúa donde lo dejaste. Tu productividad te está esperando.
+            Sign in to your account and continue where you left off. Your productivity is waiting for you.
           </p>
           
           <!-- Feature List -->
@@ -79,7 +79,7 @@ const {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
-              <span class="text-sm text-muted-foreground">Acceso seguro y protegido</span>
+              <span class="text-sm text-muted-foreground">Secure and protected access</span>
             </div>
             <div class="flex items-center gap-3">
               <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
@@ -87,7 +87,7 @@ const {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
-              <span class="text-sm text-muted-foreground">Sincronización en todos tus dispositivos</span>
+              <span class="text-sm text-muted-foreground">Sync across all your devices</span>
             </div>
             <div class="flex items-center gap-3">
               <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
@@ -95,7 +95,7 @@ const {
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
               </div>
-              <span class="text-sm text-muted-foreground">Soporte 24/7 disponible</span>
+              <span class="text-sm text-muted-foreground">24/7 support available</span>
             </div>
           </div>
         </div>
@@ -119,10 +119,10 @@ const {
           <!-- Footer Links -->
           <div class="mt-8 text-center">
             <p class="text-xs text-muted-foreground">
-              Al continuar, aceptas nuestros 
-              <a href="#" class="underline underline-offset-4 hover:text-primary">Términos de Servicio</a>
-              y 
-              <a href="#" class="underline underline-offset-4 hover:text-primary">Política de Privacidad</a>.
+              By continuing, you agree to our 
+              <a href="/legal/terms" class="underline underline-offset-4 hover:text-primary">Terms of Service</a>
+              and 
+              <a href="/legal/privacy" class="underline underline-offset-4 hover:text-primary">Privacy Policy</a>.
             </p>
           </div>
         </div>
@@ -142,12 +142,12 @@ const {
     background-attachment: local; /* Key: makes background scroll with content */
   }
   
-  /* Dark theme variation - más visible también */
+  /* Dark theme variation */
   html.dark .bg-dotted-pattern {
     background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0);
   }
   
-  /* Hide scrollbar completely but keep functionality - Brave/Chromium fix */
+  /* Hide scrollbar completely but keep functionality */
   html::-webkit-scrollbar,
   body::-webkit-scrollbar {
     width: 0px;
@@ -167,12 +167,12 @@ const {
   
   html,
   body {
-    -ms-overflow-style: none; /* IE y Edge */
+    -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
     overflow-x: hidden; /* Prevent horizontal scroll */
   }
   
-  /* También aplicar a cualquier elemento con scroll */
+  /* Apply to any scrollable elements */
   .hide-scrollbar::-webkit-scrollbar {
     width: 0px;
     height: 0px;
@@ -188,20 +188,8 @@ const {
   }
   
   .hide-scrollbar {
-    -ms-overflow-style: none; /* IE y Edge */
+    -ms-overflow-style: none; /* IE and Edge */
     scrollbar-width: none; /* Firefox */
-  }
-  
-  /* Alternative: More subtle dots */
-  .bg-dotted-subtle {
-    background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.08) 1px, transparent 0);
-    background-size: 20px 20px;
-  }
-  
-  /* Alternative: Larger dots */
-  .bg-dotted-large {
-    background-image: radial-gradient(circle at 2px 2px, rgba(255,255,255,0.12) 2px, transparent 0);
-    background-size: 24px 24px;
   }
   
   /* Smooth transitions */

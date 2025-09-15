@@ -1,29 +1,175 @@
 ---
-// LoginForm.astro - Componente de formulario de login moderno
+// LoginForm.astro - Functional Login Component with Astro v5 Actions
+import { actions } from 'astro:actions';
+
+// Get any action result from the current request
+const result = Astro.getActionResult(actions.login);
+const error = result?.error;
+const success = result?.data?.success;
+
+// Check for URL params (logout message, etc.)
+const { searchParams } = new URL(Astro.request.url);
+const message = searchParams.get('message');
 ---
+
 <div class="card w-full">
   <header>
-    <h2>Login to your account</h2>
-    <p>Enter your details below to login to your account</p>
+    <h2>Sign in to your account</h2>
+    <p>Enter your credentials to access your account</p>
   </header>
+
+  <!-- Display messages -->
+  {message === 'logged-out' && (
+    <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 mb-4 text-sm">
+      You have been successfully signed out.
+    </div>
+  )}
+
+  {message === 'account-created' && (
+    <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-3 mb-4 text-sm">
+      Account created successfully! Please sign in with your credentials.
+    </div>
+  )}
+
+  {error && (
+    <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 mb-4 text-sm">
+      {error.message}
+    </div>
+  )}
+
+  {success && (
+    <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 mb-4 text-sm">
+      Welcome back! Redirecting...
+    </div>
+  )}
+
   <section>
-    <form class="form grid gap-6">
+    <form method="POST" action={actions.login} class="form grid gap-6">
       <div class="grid gap-2">
-        <label for="demo-card-form-email">Email</label>
-        <input type="email" id="demo-card-form-email">
+        <label for="email">Email address</label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email"
+          required
+          class="input"
+          placeholder="Enter your email"
+        />
       </div>
+
       <div class="grid gap-2">
-        <div class="flex items-center gap-2">
-          <label for="demo-card-form-password">Password</label>
-          <a href="#" class="ml-auto inline-block text-sm underline-offset-4 hover:underline">Forgot your password?</a>
+        <div class="flex items-center justify-between">
+          <label for="password">Password</label>
+          <a href="/auth/forgot-password" class="text-sm text-primary hover:underline">
+            Forgot password?
+          </a>
         </div>
-        <input type="password" id="demo-card-form-password">
+        <input 
+          type="password" 
+          id="password" 
+          name="password"
+          required
+          class="input"
+          placeholder="Enter your password"
+        />
       </div>
+
+      <div class="flex items-center space-x-2">
+        <input type="checkbox" id="remember" name="remember" class="rounded">
+        <label for="remember" class="text-sm">Remember me</label>
+      </div>
+
+      <button type="submit" class="btn w-full" id="login-btn">
+        Sign in
+      </button>
     </form>
   </section>
-  <footer class="flex flex-col items-center gap-2">
-    <button type="button" class="btn w-full">Login</button>
-    <button type="button" class="btn-outline w-full">Login with Google</button>
-    <p class="mt-4 text-center text-sm">Don't have an account? <a href="#" class="underline-offset-4 hover:underline">Sign up</a></p>
+
+  <footer class="mt-6 text-center">
+    <p class="text-sm text-muted-foreground">
+      Don't have an account? 
+      <a href="/auth/register" class="text-primary hover:underline font-medium">
+        Create one here
+      </a>
+    </p>
   </footer>
 </div>
+
+<!-- Loading overlay (initially hidden) -->
+<div class="card w-full hidden" id="loading-overlay">
+  <div class="flex flex-col items-center gap-4 py-8">
+    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    <p class="text-muted-foreground">Signing you in...</p>
+  </div>
+</div>
+
+<script>
+  const loginForm = document.querySelector('form[action*="login"]') as HTMLFormElement;
+  const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
+  const loadingOverlay = document.getElementById('loading-overlay');
+  const loginCard = document.querySelector('.card:not(.hidden)');
+  
+  // Handle form submission
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      // Show loading state
+      loginBtn.disabled = true;
+      loginBtn.textContent = 'Signing in...';
+      
+      // Show loading overlay after short delay if form is slow
+      const loadingTimeout = setTimeout(() => {
+        loginCard?.classList.add('hidden');
+        loadingOverlay?.classList.remove('hidden');
+      }, 1000);
+      
+      // Clear timeout if form completes quickly
+      const observer = new MutationObserver(() => {
+        clearTimeout(loadingTimeout);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+    });
+  }
+
+  // Auto-redirect after successful login
+  if (window.location.search.includes('success')) {
+    setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 2000);
+  }
+
+  // Clear form on back navigation
+  window.addEventListener('pageshow', function(event) {
+    if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+      loginForm?.reset();
+      if (loginBtn) {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Sign in';
+      }
+    }
+  });
+</script>
+
+<style>
+  .input {
+    @apply px-3 py-2 border border-input bg-background rounded-md text-sm ring-offset-background;
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+    @apply disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium;
+    @apply ring-offset-background transition-colors;
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+    @apply h-10 px-4 py-2;
+  }
+
+  .card {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm p-6;
+  }
+
+  .form {
+    @apply space-y-4;
+  }
+</style>

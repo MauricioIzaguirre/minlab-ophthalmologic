@@ -2,57 +2,82 @@ import { defineMiddleware } from 'astro:middleware';
 import type { SessionUser } from './types/auth';
 import { authService } from './lib/auth';
 
-// Rutas que no requieren autenticación
+// Public routes that don't require authentication
 const publicRoutes = [
   '/',
-  '/login',
-  '/register',
-  '/recover-password',
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
   '/unauthorized',
+  '/api',
 ];
 
-// Rutas que requieren autenticación
+// Authentication-related routes (redirect if already logged in)
+const authRoutes = [
+  '/auth/login',
+  '/auth/register',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+];
+
+// Routes that require authentication
 const protectedRoutes = [
   '/dashboard',
   '/profile',
   '/admin',
+  '/auth/logout',
 ];
 
-// Función para verificar si una ruta es pública
-function isPublicRoute(pathname: string): boolean {
-  return publicRoutes.some(route => {
+// Function to check if a path matches any route pattern
+function matchesRoutePattern(pathname: string, routes: string[]): boolean {
+  return routes.some(route => {
     if (route === pathname) return true;
-    // Verificar rutas con parámetros dinámicos si es necesario
-    return false;
+    // Handle API routes and wildcards
+    if (route.endsWith('*')) {
+      return pathname.startsWith(route.slice(0, -1));
+    }
+    if (route.includes('/api')) {
+      return pathname.startsWith(route);
+    }
+    return pathname.startsWith(route);
   });
 }
 
-// Función para verificar si una ruta requiere autenticación
-function isProtectedRoute(pathname: string): boolean {
-  return protectedRoutes.some(route => pathname.startsWith(route));
-}
-
-// Función para verificar si el usuario tiene permisos para acceder a una ruta
+// Function to verify route permissions based on user role/permissions
 function hasRoutePermission(user: SessionUser, pathname: string): boolean {
-  // Ejemplo de verificación de permisos basada en rutas
+  // Admin routes require admin access
   if (pathname.startsWith('/admin')) {
-    return user.permissions.includes('admin.access');
+    return user.permissions.includes('admin.access') || user.role === 'super_admin';
   }
   
+  // Dashboard requires basic dashboard access
   if (pathname.startsWith('/dashboard')) {
     return user.permissions.includes('dashboard.access');
   }
   
-  // Por defecto, si está autenticado y no es una ruta específica, permitir acceso
+  // Profile routes are generally accessible to authenticated users
+  if (pathname.startsWith('/profile')) {
+    return true;
+  }
+  
+  // Logout is accessible to all authenticated users
+  if (pathname === '/auth/logout') {
+    return true;
+  }
+  
+  // For any other protected route, allow if user is authenticated
   return true;
 }
 
-// Función para verificar si el token ha expirado
+// Function to check if token is expired
 function isTokenExpired(expiresAt: number): boolean {
-  return Date.now() / 1000 >= expiresAt;
+  const now = Math.floor(Date.now() / 1000);
+  const buffer = 300; // 5 minutes buffer
+  return now >= (expiresAt - buffer);
 }
 
-// Función para crear SessionUser desde AuthResponse
+// Function to create session user from auth response
 function createSessionUser(authResponse: any, permissions: string[]): SessionUser {
   return {
     id: authResponse.user.id,
@@ -71,64 +96,93 @@ export const onRequest = defineMiddleware(async (context, next) => {
   const { url, locals, session } = context;
   const pathname = url.pathname;
 
-  // Inicializar locals con valores por defecto
+  // Initialize locals with default values
   locals.isAuthenticated = false;
   locals.user = undefined;
 
-  // Obtener usuario de la sesión
-  const sessionUser = await session?.get('user') as SessionUser | undefined;
+  try {
+    // Get user from session
+    const sessionUser = await session?.get('user') as SessionUser | undefined;
 
-  if (sessionUser) {
-    // Verificar si el token ha expirado
-    if (isTokenExpired(sessionUser.expires_at)) {
-      // Intentar refrescar el token
-      try {
-        const refreshResponse = await authService.refreshToken({
-          refresh_token: sessionUser.refresh_token
-        });
+    if (sessionUser) {
+      // Check if token is expired
+      if (isTokenExpired(sessionUser.expires_at)) {
+        try {
+          console.log('Token expired, attempting refresh...');
+          
+          // Attempt to refresh the token
+          const refreshResponse = await authService.refreshToken({
+            refresh_token: sessionUser.refresh_token
+          });
 
-        // Obtener permisos actualizados
-        const permissions = await authService.getUserPermissions(refreshResponse.access_token);
-        
-        // Crear usuario actualizado
-        const updatedUser = createSessionUser(refreshResponse, permissions.permissions);
-        await session?.set('user', updatedUser);
-        
-        locals.user = updatedUser;
+          // Get updated permissions
+          const permissions = await authService.getUserPermissions(refreshResponse.access_token);
+          
+          // Create updated user session
+          const updatedUser = createSessionUser(refreshResponse, permissions.permissions);
+          await session?.set('user', updatedUser);
+          
+          locals.user = updatedUser;
+          locals.isAuthenticated = true;
+          
+          console.log('Token refreshed successfully');
+        } catch (error) {
+          console.error('Failed to refresh token:', error);
+          
+          // Clear invalid session
+          await session?.destroy();
+          locals.user = undefined;
+          locals.isAuthenticated = false;
+        }
+      } else {
+        // Token is valid
+        locals.user = sessionUser;
         locals.isAuthenticated = true;
-      } catch (error) {
-        console.error('Error refreshing token:', error);
-        // Si falla el refresh, limpiar la sesión
-        await session?.destroy();
-        locals.user = undefined;
-        locals.isAuthenticated = false;
       }
-    } else {
-      // Token válido
-      locals.user = sessionUser;
-      locals.isAuthenticated = true;
     }
-  }
 
-  // Si es una ruta pública, permitir acceso
-  if (isPublicRoute(pathname)) {
+    // Route protection logic
+    const isPublic = matchesRoutePattern(pathname, publicRoutes);
+    const isAuthRoute = matchesRoutePattern(pathname, authRoutes);
+    const isProtected = matchesRoutePattern(pathname, protectedRoutes);
+
+    // Handle authentication redirects
+    if (isAuthRoute && locals.isAuthenticated) {
+      // Already logged in, redirect to dashboard
+      console.log(`Redirecting authenticated user from ${pathname} to /dashboard`);
+      return context.redirect('/dashboard');
+    }
+
+    if (isProtected && !locals.isAuthenticated) {
+      // Need authentication, redirect to login
+      console.log(`Redirecting unauthenticated user from ${pathname} to /auth/login`);
+      return context.redirect(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
+    }
+
+    // Check permissions for protected routes
+    if (isProtected && locals.isAuthenticated && locals.user) {
+      if (!hasRoutePermission(locals.user, pathname)) {
+        console.log(`User lacks permission for ${pathname}, redirecting to /unauthorized`);
+        return context.redirect('/unauthorized');
+      }
+    }
+
+    // Continue to the route
+    return next();
+
+  } catch (error) {
+    console.error('Middleware error:', error);
+    
+    // Clear session on error and continue
+    await session?.destroy();
+    locals.user = undefined;
+    locals.isAuthenticated = false;
+    
+    // For protected routes, redirect to login on error
+    if (matchesRoutePattern(pathname, protectedRoutes)) {
+      return context.redirect('/auth/login?error=session-error');
+    }
+    
     return next();
   }
-
-  // Si es una ruta protegida y no está autenticado, redirigir al login
-  if (isProtectedRoute(pathname) && !locals.isAuthenticated) {
-    return context.redirect('/login');
-  }
-
-  // Si está autenticado pero no tiene permisos para la ruta, redirigir
-  if (locals.isAuthenticated && locals.user && !hasRoutePermission(locals.user, pathname)) {
-    return context.redirect('/unauthorized');
-  }
-
-  // Si es una ruta de autenticación y ya está autenticado, redirigir al dashboard
-  if ((pathname === '/login' || pathname === '/register') && locals.isAuthenticated) {
-    return context.redirect('/dashboard');
-  }
-
-  return next();
 });
