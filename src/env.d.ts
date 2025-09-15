@@ -1,14 +1,16 @@
-/// <reference path="../.astro/types.d.ts" />
+/// <reference types="astro/client" />
 
 import type { SessionUser } from './types/auth';
 
-declare namespace App {
-  interface Locals {
-    user?: SessionUser;
-    isAuthenticated: boolean;
-  }
-  
-  interface SessionData {
-    user?: SessionUser;
+declare global {
+  namespace App {
+    interface Locals {
+      user?: SessionUser;
+      isAuthenticated: boolean;
+    }
+    
+    interface SessionData {
+      user?: SessionUser;
+    }
   }
 }

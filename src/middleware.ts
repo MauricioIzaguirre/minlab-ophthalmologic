@@ -8,9 +8,7 @@ const publicRoutes = [
   '/login',
   '/register',
   '/recover-password',
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/recover-password',
+  '/unauthorized',
 ];
 
 // Rutas que requieren autenticación
@@ -49,11 +47,31 @@ function hasRoutePermission(user: SessionUser, pathname: string): boolean {
   return true;
 }
 
+// Función para verificar si el token ha expirado
+function isTokenExpired(expiresAt: number): boolean {
+  return Date.now() / 1000 >= expiresAt;
+}
+
+// Función para crear SessionUser desde AuthResponse
+function createSessionUser(authResponse: any, permissions: string[]): SessionUser {
+  return {
+    id: authResponse.user.id,
+    email: authResponse.user.email,
+    first_name: authResponse.user.user_metadata.first_name,
+    last_name: authResponse.user.user_metadata.last_name,
+    role: authResponse.user.role,
+    permissions,
+    access_token: authResponse.access_token,
+    refresh_token: authResponse.refresh_token,
+    expires_at: authResponse.expires_at,
+  };
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
-  const { request, url, cookies, locals, session } = context;
+  const { url, locals, session } = context;
   const pathname = url.pathname;
 
-  // Inicializar locals
+  // Inicializar locals con valores por defecto
   locals.isAuthenticated = false;
   locals.user = undefined;
 
@@ -62,7 +80,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 
   if (sessionUser) {
     // Verificar si el token ha expirado
-    if (authService.isTokenExpired(sessionUser.expires_at)) {
+    if (isTokenExpired(sessionUser.expires_at)) {
       // Intentar refrescar el token
       try {
         const refreshResponse = await authService.refreshToken({
@@ -72,13 +90,14 @@ export const onRequest = defineMiddleware(async (context, next) => {
         // Obtener permisos actualizados
         const permissions = await authService.getUserPermissions(refreshResponse.access_token);
         
-        // Actualizar usuario en sesión
-        const updatedUser = authService.toSessionUser(refreshResponse, permissions.permissions);
+        // Crear usuario actualizado
+        const updatedUser = createSessionUser(refreshResponse, permissions.permissions);
         await session?.set('user', updatedUser);
         
         locals.user = updatedUser;
         locals.isAuthenticated = true;
       } catch (error) {
+        console.error('Error refreshing token:', error);
         // Si falla el refresh, limpiar la sesión
         await session?.destroy();
         locals.user = undefined;

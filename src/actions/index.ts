@@ -58,6 +58,21 @@ const updateCompleteProfileSchema = z.object({
   bio: z.string().optional().default(''),
 });
 
+// Función auxiliar para crear SessionUser
+function createSessionUser(authResponse: any, permissions: string[]): SessionUser {
+  return {
+    id: authResponse.user.id,
+    email: authResponse.user.email,
+    first_name: authResponse.user.user_metadata.first_name,
+    last_name: authResponse.user.user_metadata.last_name,
+    role: authResponse.user.role,
+    permissions,
+    access_token: authResponse.access_token,
+    refresh_token: authResponse.refresh_token,
+    expires_at: authResponse.expires_at,
+  };
+}
+
 export const server = {
   // Registrar usuario
   register: defineAction({
@@ -78,8 +93,8 @@ export const server = {
         // Obtener permisos del usuario
         const permissions = await authService.getUserPermissions(response.access_token);
         
-        // Crear usuario de sesión
-        const sessionUser = authService.toSessionUser(response, permissions.permissions);
+        // Crear usuario de sesión usando función auxiliar
+        const sessionUser = createSessionUser(response, permissions.permissions);
         
         // Guardar en sesión
         await context.session?.set('user', sessionUser);
@@ -87,7 +102,7 @@ export const server = {
         return { success: true, message: 'Usuario registrado exitosamente' };
       } catch (error) {
         throw new ActionError({
-          code: 'REGISTRATION_FAILED',
+          code: 'BAD_REQUEST',
           message: error instanceof Error ? error.message : 'Error al registrar usuario',
         });
       }
@@ -108,8 +123,8 @@ export const server = {
         // Obtener permisos del usuario
         const permissions = await authService.getUserPermissions(response.access_token);
         
-        // Crear usuario de sesión
-        const sessionUser = authService.toSessionUser(response, permissions.permissions);
+        // Crear usuario de sesión usando función auxiliar
+        const sessionUser = createSessionUser(response, permissions.permissions);
         
         // Guardar en sesión
         await context.session?.set('user', sessionUser);
@@ -117,7 +132,7 @@ export const server = {
         return { success: true, message: 'Sesión iniciada exitosamente' };
       } catch (error) {
         throw new ActionError({
-          code: 'LOGIN_FAILED',
+          code: 'UNAUTHORIZED',
           message: error instanceof Error ? error.message : 'Error al iniciar sesión',
         });
       }
@@ -144,7 +159,7 @@ export const server = {
         await context.session?.destroy();
         
         throw new ActionError({
-          code: 'LOGOUT_FAILED',
+          code: 'INTERNAL_SERVER_ERROR',
           message: error instanceof Error ? error.message : 'Error al cerrar sesión',
         });
       }
@@ -164,7 +179,7 @@ export const server = {
         return { success: true, message: 'Se ha enviado un email para recuperar la contraseña' };
       } catch (error) {
         throw new ActionError({
-          code: 'RECOVERY_FAILED',
+          code: 'BAD_REQUEST',
           message: error instanceof Error ? error.message : 'Error al recuperar contraseña',
         });
       }
@@ -194,7 +209,7 @@ export const server = {
         return { success: true, message: 'Contraseña actualizada exitosamente' };
       } catch (error) {
         throw new ActionError({
-          code: 'UPDATE_PASSWORD_FAILED',
+          code: 'BAD_REQUEST',
           message: error instanceof Error ? error.message : 'Error al actualizar contraseña',
         });
       }
@@ -239,7 +254,7 @@ export const server = {
         return { success: true, message: 'Perfil actualizado exitosamente' };
       } catch (error) {
         throw new ActionError({
-          code: 'UPDATE_METADATA_FAILED',
+          code: 'BAD_REQUEST',
           message: error instanceof Error ? error.message : 'Error al actualizar perfil',
         });
       }
@@ -266,7 +281,7 @@ export const server = {
         return { success: true, message: 'Perfil completo actualizado exitosamente' };
       } catch (error) {
         throw new ActionError({
-          code: 'UPDATE_COMPLETE_PROFILE_FAILED',
+          code: 'BAD_REQUEST',
           message: error instanceof Error ? error.message : 'Error al actualizar perfil completo',
         });
       }
@@ -290,7 +305,7 @@ export const server = {
         return { success: true, data: profile };
       } catch (error) {
         throw new ActionError({
-          code: 'GET_PROFILE_FAILED',
+          code: 'INTERNAL_SERVER_ERROR',
           message: error instanceof Error ? error.message : 'Error al obtener perfil',
         });
       }
@@ -314,7 +329,7 @@ export const server = {
         return { success: true, data: permissions };
       } catch (error) {
         throw new ActionError({
-          code: 'GET_PERMISSIONS_FAILED',
+          code: 'INTERNAL_SERVER_ERROR',
           message: error instanceof Error ? error.message : 'Error al obtener permisos',
         });
       }
