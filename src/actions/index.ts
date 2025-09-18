@@ -3,7 +3,7 @@ import { z } from 'astro:schema';
 import { authService } from '../lib/auth';
 import type { SessionUser } from '../types/auth';
 
-// Esquemas de validación
+// Esquemas de validación (mantenidos igual)
 const registerSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
@@ -73,13 +73,42 @@ function createSessionUser(authResponse: any, permissions: string[]): SessionUse
   };
 }
 
+// Función para mapear errores de autenticación a mensajes amigables
+function getAuthErrorMessage(error: unknown): string {
+  const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  
+  // Mapeo de errores comunes
+  if (errorMessage.includes('invalid_grant') || errorMessage.includes('invalid credentials')) {
+    return 'Credenciales incorrectas. Verifica tu email y contraseña.';
+  }
+  if (errorMessage.includes('email_not_confirmed') || errorMessage.includes('not confirmed')) {
+    return 'Tu cuenta aún no ha sido verificada. Revisa tu email.';
+  }
+  if (errorMessage.includes('too_many_requests') || errorMessage.includes('rate limit')) {
+    return 'Demasiados intentos. Espera un momento antes de intentar nuevamente.';
+  }
+  if (errorMessage.includes('user_not_found')) {
+    return 'No se encontró una cuenta con ese email.';
+  }
+  if (errorMessage.includes('password')) {
+    return 'La contraseña debe tener al menos 6 caracteres.';
+  }
+  if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+    return 'Error de conexión. Verifica tu conexión a internet.';
+  }
+  
+  return 'Error inesperado. Por favor, inténtalo más tarde.';
+}
+
 export const server = {
-  // Registrar usuario
+  // Registrar usuario - Mejorado
   register: defineAction({
     accept: 'form',
     input: registerSchema,
     handler: async (input, context) => {
       try {
+        console.log('🚀 Starting user registration process');
+        
         const response = await authService.register({
           email: input.email,
           password: input.password,
@@ -90,103 +119,162 @@ export const server = {
           },
         });
 
+        console.log('✅ User registered successfully');
+
         // Obtener permisos del usuario
         const permissions = await authService.getUserPermissions(response.access_token);
         
-        // Crear usuario de sesión usando función auxiliar
+        // Crear usuario de sesión
         const sessionUser = createSessionUser(response, permissions.permissions);
         
         // Guardar en sesión
         await context.session?.set('user', sessionUser);
 
-        return { success: true, message: 'Usuario registrado exitosamente' };
+        return { 
+          success: true, 
+          message: 'Usuario registrado exitosamente',
+          redirect: '/dashboard'
+        };
       } catch (error) {
+        console.error('❌ Registration error:', error);
+        
         throw new ActionError({
           code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Error al registrar usuario',
+          message: getAuthErrorMessage(error),
         });
       }
     },
   }),
 
-  // Iniciar sesión
+  // Iniciar sesión - Mejorado con mejor manejo de errores
   login: defineAction({
     accept: 'form',
     input: loginSchema,
     handler: async (input, context) => {
+      const startTime = Date.now();
+      
       try {
+        console.log('🔐 Starting login process for:', input.email);
+        
         const response = await authService.login({
           email: input.email,
           password: input.password,
         });
 
+        console.log('✅ Authentication successful, fetching permissions...');
+
         // Obtener permisos del usuario
         const permissions = await authService.getUserPermissions(response.access_token);
         
-        // Crear usuario de sesión usando función auxiliar
+        // Crear usuario de sesión
         const sessionUser = createSessionUser(response, permissions.permissions);
         
         // Guardar en sesión
         await context.session?.set('user', sessionUser);
+        
+        const endTime = Date.now();
+        console.log(`🎉 Login completed successfully in ${endTime - startTime}ms`);
 
-        return { success: true, message: 'Sesión iniciada exitosamente' };
+        return { 
+          success: true, 
+          message: 'Sesión iniciada exitosamente',
+          redirect: '/dashboard',
+          user: {
+            id: sessionUser.id,
+            email: sessionUser.email,
+            first_name: sessionUser.first_name,
+            last_name: sessionUser.last_name
+          }
+        };
       } catch (error) {
+        const endTime = Date.now();
+        console.error(`❌ Login failed after ${endTime - startTime}ms:`, error);
+        
         throw new ActionError({
           code: 'UNAUTHORIZED',
-          message: error instanceof Error ? error.message : 'Error al iniciar sesión',
+          message: getAuthErrorMessage(error),
         });
       }
     },
   }),
 
-  // Cerrar sesión
+  // Cerrar sesión - Mejorado
   logout: defineAction({
     handler: async (_input, context) => {
       try {
+        console.log('🚪 Starting logout process');
+        
         const sessionUser = await context.session?.get('user') as SessionUser | undefined;
         
         if (sessionUser) {
-          // Cerrar sesión en Supabase
-          await authService.logout(sessionUser.access_token);
+          try {
+            // Cerrar sesión en Supabase
+            await authService.logout(sessionUser.access_token);
+            console.log('✅ Supabase logout successful');
+          } catch (supabaseError) {
+            // Log el error pero continua con el logout local
+            console.warn('⚠️ Supabase logout failed, continuing with local logout:', supabaseError);
+          }
         }
 
-        // Destruir sesión local
+        // Destruir sesión local siempre
         await context.session?.destroy();
+        
+        console.log('✅ Local session destroyed');
 
-        return { success: true, message: 'Sesión cerrada exitosamente' };
+        return { 
+          success: true, 
+          message: 'Sesión cerrada exitosamente',
+          redirect: '/auth/login?message=logged-out'
+        };
       } catch (error) {
-        // Aunque falle el logout en Supabase, limpiar sesión local
-        await context.session?.destroy();
+        console.error('❌ Logout error:', error);
+        
+        // Asegurar limpieza de sesión aunque falle
+        try {
+          await context.session?.destroy();
+        } catch (destroyError) {
+          console.error('❌ Failed to destroy session:', destroyError);
+        }
         
         throw new ActionError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: error instanceof Error ? error.message : 'Error al cerrar sesión',
+          message: 'Error al cerrar sesión. La sesión local ha sido limpiada.',
         });
       }
     },
   }),
 
-  // Recuperar contraseña
+  // Recuperar contraseña - Mejorado
   recoverPassword: defineAction({
     accept: 'form',
     input: recoverPasswordSchema,
     handler: async (input) => {
       try {
+        console.log('📧 Starting password recovery for:', input.email);
+        
         await authService.recoverPassword({
           email: input.email,
         });
 
-        return { success: true, message: 'Se ha enviado un email para recuperar la contraseña' };
+        console.log('✅ Password recovery email sent');
+
+        return { 
+          success: true, 
+          message: 'Se ha enviado un email para recuperar la contraseña' 
+        };
       } catch (error) {
+        console.error('❌ Password recovery error:', error);
+        
         throw new ActionError({
           code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Error al recuperar contraseña',
+          message: getAuthErrorMessage(error),
         });
       }
     },
   }),
 
-  // Actualizar contraseña
+  // Actualizar contraseña - Mejorado
   updatePassword: defineAction({
     accept: 'form',
     input: updatePasswordSchema,
@@ -201,22 +289,31 @@ export const server = {
       }
 
       try {
+        console.log('🔒 Updating password for user:', sessionUser.id);
+        
         await authService.updatePassword(
           { password: input.password },
           sessionUser.access_token
         );
 
-        return { success: true, message: 'Contraseña actualizada exitosamente' };
+        console.log('✅ Password updated successfully');
+
+        return { 
+          success: true, 
+          message: 'Contraseña actualizada exitosamente' 
+        };
       } catch (error) {
+        console.error('❌ Password update error:', error);
+        
         throw new ActionError({
           code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Error al actualizar contraseña',
+          message: getAuthErrorMessage(error),
         });
       }
     },
   }),
 
-  // Actualizar metadata de usuario
+  // Actualizar metadata de usuario - Mantenido igual pero con mejor logging
   updateUserMetadata: defineAction({
     accept: 'form',
     input: updateUserMetadataSchema,
@@ -231,6 +328,8 @@ export const server = {
       }
 
       try {
+        console.log('👤 Updating user metadata for:', sessionUser.id);
+        
         await authService.updateUserMetadata(
           {
             data: {
@@ -251,17 +350,24 @@ export const server = {
         };
         await context.session?.set('user', updatedUser);
 
-        return { success: true, message: 'Perfil actualizado exitosamente' };
+        console.log('✅ User metadata updated successfully');
+
+        return { 
+          success: true, 
+          message: 'Perfil actualizado exitosamente' 
+        };
       } catch (error) {
+        console.error('❌ Update metadata error:', error);
+        
         throw new ActionError({
           code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Error al actualizar perfil',
+          message: getAuthErrorMessage(error),
         });
       }
     },
   }),
 
-  // Actualizar perfil completo
+  // Resto de las acciones mantenidas igual pero con mejor logging
   updateCompleteProfile: defineAction({
     accept: 'form',
     input: updateCompleteProfileSchema,
@@ -276,19 +382,28 @@ export const server = {
       }
 
       try {
+        console.log('📋 Updating complete profile for:', sessionUser.id);
+        
         await authService.updateCompleteProfile(input, sessionUser.access_token);
 
-        return { success: true, message: 'Perfil completo actualizado exitosamente' };
+        console.log('✅ Complete profile updated successfully');
+
+        return { 
+          success: true, 
+          message: 'Perfil completo actualizado exitosamente' 
+        };
       } catch (error) {
+        console.error('❌ Update complete profile error:', error);
+        
         throw new ActionError({
           code: 'BAD_REQUEST',
-          message: error instanceof Error ? error.message : 'Error al actualizar perfil completo',
+          message: getAuthErrorMessage(error),
         });
       }
     },
   }),
 
-  // Obtener perfil del usuario actual
+  // Obtener perfil del usuario actual - Con mejor manejo de errores
   getCurrentUserProfile: defineAction({
     handler: async (_input, context) => {
       const sessionUser = await context.session?.get('user') as SessionUser | undefined;
@@ -301,18 +416,25 @@ export const server = {
       }
 
       try {
+        console.log('👤 Fetching profile for user:', sessionUser.id);
+        
         const profile = await authService.getCurrentUserProfile(sessionUser.access_token);
+        
+        console.log('✅ Profile fetched successfully');
+        
         return { success: true, data: profile };
       } catch (error) {
+        console.error('❌ Get profile error:', error);
+        
         throw new ActionError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: error instanceof Error ? error.message : 'Error al obtener perfil',
+          message: getAuthErrorMessage(error),
         });
       }
     },
   }),
 
-  // Obtener permisos del usuario actual
+  // Obtener permisos del usuario actual - Con mejor manejo de errores
   getUserPermissions: defineAction({
     handler: async (_input, context) => {
       const sessionUser = await context.session?.get('user') as SessionUser | undefined;
@@ -325,12 +447,19 @@ export const server = {
       }
 
       try {
+        console.log('🔐 Fetching permissions for user:', sessionUser.id);
+        
         const permissions = await authService.getUserPermissions(sessionUser.access_token);
+        
+        console.log('✅ Permissions fetched successfully');
+        
         return { success: true, data: permissions };
       } catch (error) {
+        console.error('❌ Get permissions error:', error);
+        
         throw new ActionError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: error instanceof Error ? error.message : 'Error al obtener permisos',
+          message: getAuthErrorMessage(error),
         });
       }
     },
