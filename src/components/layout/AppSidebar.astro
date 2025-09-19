@@ -1,25 +1,43 @@
 ---
-// AppSidebar.astro - Sidebar principal de la aplicación siguiendo el patrón de Basecoat
+// AppSidebar.astro - Sidebar modular con configuración externa
+import { sidebarConfig } from '../../config/sidebar';
+
+// Obtener usuario de locals (configurado por middleware)
+const user = Astro.locals.user;
+const currentPath = Astro.url.pathname;
+
+// Si no hay usuario, mostrar sidebar básico
+if (!user) {
+  return null;
+}
+
+// Obtener sidebar personalizado para el usuario
+const userSidebar = sidebarConfig.utils.getSidebarForUser(user.permissions, user.role);
+const activeItem = sidebarConfig.utils.findActiveItem(userSidebar, currentPath);
+
+// Función para determinar si una ruta está activa
+function isActive(href: string): boolean {
+  return sidebarConfig.utils.isActiveRoute(currentPath, href);
+}
+
+// Obtener iniciales del usuario
+function getInitials(firstName: string, lastName: string): string {
+  return (firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+}
 ---
 
-<!-- ✅ CORREGIDO: ID único y sin atributos hardcodeados -->
 <aside class="sidebar" data-side="left" aria-hidden="false">
   <nav aria-label="Sidebar navigation">
     
     <!-- Header del Sidebar -->
     <header>
-      <a href="/dashboard" class="btn-ghost p-2 h-12 w-full justify-start" aria-current="page">
+      <a href={sidebarConfig.header.href} class="btn-ghost p-2 h-12 w-full justify-start" aria-current={isActive(sidebarConfig.header.href) ? 'page' : undefined}>
         <div class="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4">
-            <circle cx="12" cy="12" r="3"></circle>
-            <path d="M12 1v6m0 6v6"></path>
-            <path d="m15 5-3 3-3-3"></path>
-            <path d="m15 19-3-3-3 3"></path>
-          </svg>
+          <Fragment set:html={sidebarConfig.header.logoIcon} />
         </div>
         <div class="grid flex-1 text-left text-sm leading-tight">
-          <span class="truncate font-medium">OptiCare</span>
-          <span class="truncate text-xs">v1.0.0</span>
+          <span class="truncate font-medium">{sidebarConfig.header.title}</span>
+          <span class="truncate text-xs">{sidebarConfig.header.version}</span>
         </div>
       </a>
     </header>
@@ -27,317 +45,25 @@
     <!-- Contenido del Sidebar -->
     <section class="scrollbar">
       
-      <!-- Sección: Dashboard -->
-      <div role="group" aria-labelledby="group-label-dashboard">
-        <h3 id="group-label-dashboard">Dashboard</h3>
-        <ul>
-          <li>
-            <a href="/dashboard">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="7" height="9" x="3" y="3" rx="1"></rect>
-                <rect width="7" height="5" x="14" y="3" rx="1"></rect>
-                <rect width="7" height="9" x="14" y="12" rx="1"></rect>
-                <rect width="7" height="5" x="3" y="16" rx="1"></rect>
-              </svg>
-              <span>Resumen General</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Sección: Gestión de Citas -->
-      <div role="group" aria-labelledby="group-label-appointments">
-        <h3 id="group-label-appointments">Citas</h3>
-        <ul>
-          <li>
-            <a href="/appointment">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 2v4"></path>
-                <path d="M16 2v4"></path>
-                <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-                <path d="M3 10h18"></path>
-              </svg>
-              <span>Todas las Citas</span>
-            </a>
-          </li>
-          <li>
-            <a href="/appointment/new">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 2v4"></path>
-                <path d="M16 2v4"></path>
-                <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-                <path d="M3 10h18"></path>
-                <path d="M8 14h.01"></path>
-                <path d="M12 14h.01"></path>
-                <path d="M16 14h.01"></path>
-                <path d="M8 18h.01"></path>
-                <path d="M12 18h.01"></path>
-                <path d="M16 18h.01"></path>
-              </svg>
-              <span>Agendar Cita</span>
-            </a>
-          </li>
-          <li>
-            <a href="/appointment/today">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12,6 12,12 16,14"></polyline>
-              </svg>
-              <span>Citas de Hoy</span>
-            </a>
-          </li>
-          <li>
-            <a href="/appointment/calendar">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-                <path d="M16 2v4"></path>
-                <path d="M8 2v4"></path>
-                <path d="M3 10h18"></path>
-                <path d="m9 16 2 2 4-4"></path>
-              </svg>
-              <span>Calendario</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Sección: Pacientes 
-       <div role="group" aria-labelledby="group-label-patients">
-        <h3 id="group-label-patients">Pacientes</h3>
-        <ul>
-          <li>
-            <a href="/pacientes">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span>Todos los Pacientes</span>
-            </a>
-          </li>
-          <li>
-            <a href="/pacientes/nuevo">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <line x1="19" y1="8" x2="19" y2="14"></line>
-                <line x1="22" y1="11" x2="16" y2="11"></line>
-              </svg>
-              <span>Registrar Paciente</span>
-            </a>
-          </li>
-          <li>
-            <a href="/pacientes/buscar">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.35-4.35"></path>
-              </svg>
-              <span>Buscar Paciente</span>
-            </a>
-          </li>
-        </ul>
-      </div>-->
-      
-
-      <!-- Sección: Doctores -->
-      <div role="group" aria-labelledby="group-label-doctors">
-        <h3 id="group-label-doctors">Doctores</h3>
-        <ul>
-          <li>
-            <a href="/doctors">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                <path d="M9 12h6l-3-3"></path>
-                <path d="M9 12h6l-3 3"></path>
-              </svg>
-              <span>Especialistas</span>
-            </a>
-          </li>
-          <!--
-          <li>
-            <a href="/doctores/horarios">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <polyline points="12,6 12,12 16,14"></polyline>
-              </svg>
-              <span>Horarios</span>
-            </a>
-          </li> -->
-          <li>
-            <a href="/doctors/availability">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 12l2 2 4-4"></path>
-                <circle cx="12" cy="12" r="10"></circle>
-              </svg>
-              <span>Disponibilidad</span>
-            </a>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Sección: Servicios -->
-      <div role="group" aria-labelledby="group-label-services">
-        <h3 id="group-label-services">Servicios</h3>
-        <ul>
-          <li>
-            <a href="/services">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="3"></circle>
-                <path d="M12 1v6m0 6v6"></path>
-                <path d="m15 5-3 3-3-3"></path>
-                <path d="m15 19-3-3-3 3"></path>
-              </svg>
-              <span>Consulta General</span>
-            </a>
-          </li>
-      <!-- 
-       <li>
-            <a href="/services/surgery">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 3v6l4-4-4-4"></path>
-                <path d="M12 21v-6l4 4-4 4"></path>
-                <path d="M3 12h6l-4-4-4 4"></path>
-                <path d="M21 12h-6l4-4 4 4"></path>
-              </svg>
-              <span>Cirugías</span>
-            </a>
-          </li>
-          <li>
-            <a href="/services/exams">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14,2 14,8 20,8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10,9 9,9 8,9"></polyline>
-              </svg>
-              <span>Exámenes</span>
-            </a>
-          </li>
-          <li>
-            <a href="/servicios/emergencias">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M16 11V7a4 4 0 0 0-8 0v4"></path>
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                <circle cx="12" cy="16" r="1"></circle>
-                <path d="M12 17v4"></path>
-              </svg>
-              <span>Urgencias</span>
-            </a>
-          </li>
-        </ul>
-      </div>    
-      Sección: Historiales
-      <div role="group" aria-labelledby="group-label-records">
-        <h3 id="group-label-records">Historiales</h3>
-        <ul>
-          <li>
-            <a href="/histories">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                <polyline points="14,2 14,8 20,8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10,9 9,9 8,9"></polyline>
-              </svg>
-              <span>Historiales Médicos</span>
-            </a>
-          </li>
-          <li>
-            <a href="/historiales/tratamientos">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"></path>
-                <path d="M12 15l8.5-8.5a2.83 2.83 0 1 0-4-4L8 11"></path>
-                <path d="M9 7.5L16.5 15"></path>
-                <path d="M21 3L9 15"></path>
-              </svg>
-              <span>Tratamientos</span>
-            </a>
-          </li>
-          <li>
-            <a href="/historiales/prescripciones">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect width="20" height="14" x="2" y="3" rx="2" ry="2"></rect>
-                <line x1="8" y1="21" x2="16" y2="21"></line>
-                <line x1="12" y1="17" x2="12" y2="21"></line>
-              </svg>
-              <span>Prescripciones</span>
-            </a>
-          </li>
-        </ul>
-      </div> 
-      -->
-      
-
-      <!-- Sección: Reportes -->
-      <div role="group" aria-labelledby="group-label-reports">
-        <h3 id="group-label-reports">Reportes</h3>
-        <ul>
-          <li>
-            <a href="/reports">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="18" y1="20" x2="18" y2="10"></line>
-                <line x1="12" y1="20" x2="12" y2="4"></line>
-                <line x1="6" y1="20" x2="6" y2="14"></line>
-              </svg>
-              <span>Estadísticas</span>
-            </a>
-          </li>
-          <li>
-            <a href="/reports/financial">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="1" x2="12" y2="23"></line>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-              </svg>
-              <span>Financieros</span>
-            </a>
-          </li>
-          <!-- 
-          <li>
-            <a href="/reportes/ocupacion">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                <rect x="7" y="9" width="10" height="6"></rect>
-                <line x1="9" y1="9" x2="9" y2="15"></line>
-                <line x1="15" y1="9" x2="15" y2="15"></line>
-              </svg>
-              <span>Ocupación</span>
-            </a>
-          </li>-->
-        </ul>
-      </div>
-      
-      <!-- Sección: Configuración -->
-      <div role="group" aria-labelledby="group-label-sidebar-content-2">
-        <h3 id="group-label-sidebar-content-2">Configuración</h3>
-        
-        <ul>
-          <li>
-            <a href="/settings/general">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-              <span>General</span>
-            </a>
-          </li>
-          <li>
-            <a href="/settings/users">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <span>Usuarios</span>
-            </a>
-          </li>
-        </ul>
-      </div>
+      {userSidebar.map((group) => (
+        <div role="group" aria-labelledby={`group-label-${group.id}`}>
+          <h3 id={`group-label-${group.id}`}>{group.title}</h3>
+          <ul>
+            {group.items.map((item) => (
+              <li>
+                <a 
+                  href={item.href}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                  class={isActive(item.href) ? 'active' : undefined}
+                >
+                  <Fragment set:html={item.icon} />
+                  <span>{item.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
 
     </section>
 
@@ -346,10 +72,10 @@
       <div id="popover-user" class="popover">
         <button id="popover-user-trigger" type="button" aria-expanded="false" aria-controls="popover-user-popover" class="btn-ghost p-2 h-12 w-full flex items-center justify-start" data-keep-mobile-sidebar-open="">
           
-          <img src="https://github.com/hunvreus.png" class="rounded-lg shrink-0 size-8" alt="User Avatar">
+          <img src={sidebarConfig.profile.defaultAvatarUrl} class="rounded-lg shrink-0 size-8" alt={`Avatar de ${user.first_name} ${user.last_name}`}>
           <div class="grid flex-1 text-left text-sm leading-tight">
-            <span class="truncate font-medium">Dr. Usuario</span>
-            <span class="truncate text-xs">@oftalmologia</span>
+            <span class="truncate font-medium">{user.first_name} {user.last_name}</span>
+            <span class="truncate text-xs">@{user.role}</span>
           </div>
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m7 15 5 5 5-5"></path>
@@ -363,10 +89,27 @@
             <header class="grid gap-1.5">
               <h2 class="font-semibold">Perfil Profesional</h2>
               <p class="text-muted-foreground text-sm">Gestiona tu cuenta y preferencias médicas.</p>
+              
+              <!-- Mostrar información del usuario -->
+              <div class="mt-2 p-2 bg-muted/50 rounded-lg">
+                <div class="flex items-center gap-2 text-xs">
+                  <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold text-xs">
+                    {getInitials(user.first_name, user.last_name)}
+                  </div>
+                  <div>
+                    <p class="font-medium">{user.first_name} {user.last_name}</p>
+                    <p class="text-muted-foreground">{user.email}</p>
+                  </div>
+                </div>
+                <div class="mt-2 flex items-center gap-2 text-xs">
+                  <span class="px-2 py-1 bg-primary/10 text-primary rounded-full">{user.role.replace('_', ' ').toUpperCase()}</span>
+                  <span class="text-muted-foreground">{user.permissions.length} permisos</span>
+                </div>
+              </div>
             </header>
             <footer class="grid gap-2">
-              <a href="/perfil" class="btn-sm">Ver Perfil</a>
-              <a href="/auth/logout" class="btn-sm-outline">Cerrar Sesión</a>
+              <a href={sidebarConfig.profile.profileHref} class="btn-sm">Ver Perfil</a>
+              <a href={sidebarConfig.profile.logoutHref} class="btn-sm-outline">Cerrar Sesión</a>
             </footer>
           </div>
 
@@ -376,3 +119,14 @@
     
   </nav>
 </aside>
+
+<!-- Debug info (solo en desarrollo)
+{import.meta.env.DEV && (
+  <script define:vars={{user, currentPath, userSidebar}}>
+    console.log('👤 Usuario actual:', {user});
+    console.log('🛣️  Ruta actual:', {currentPath});
+    console.log('🔐 Permisos:', {permissions: user.permissions});
+    console.log('📁 Grupos de sidebar disponibles:', {groups: userSidebar.length});
+  </script>
+)} 
+-->

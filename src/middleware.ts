@@ -1,78 +1,25 @@
 import { defineMiddleware } from 'astro:middleware';
 import type { SessionUser } from './types/auth';
 import { authService } from './lib/auth';
-
-// Public routes that don't require authentication
-const publicRoutes = [
-  '/',
-  '/auth/login',
-  '/auth/register',
-  '/auth/forgot-password',
-  '/auth/reset-password',
-  '/unauthorized',
-  '/api',
-];
-
-// Authentication-related routes (redirect if already logged in)
-const authRoutes = [
-  '/auth/login',
-  '/auth/register',
-  '/auth/forgot-password',
-  '/auth/reset-password',
-];
-
-// Routes that require authentication 
-const protectedRoutes = [
-  '/dashboard',
-  '/appointment',
-  '/doctors',
-  '/auth/logout',
-  '/services',
-  '/patients',
-  '/histories',
-  '/reports',
-  '/settings'
-];
-
-// Function to check if a path matches any route pattern
-function matchesRoutePattern(pathname: string, routes: string[]): boolean {
-  return routes.some(route => {
-    if (route === pathname) return true;
-    // Handle API routes and wildcards
-    if (route.endsWith('*')) {
-      return pathname.startsWith(route.slice(0, -1));
-    }
-    if (route.includes('/api')) {
-      return pathname.startsWith(route);
-    }
-    return pathname.startsWith(route);
-  });
-}
+import { RouteUtils, redirectConfig } from './config/routes';
 
 // Function to verify route permissions based on user role/permissions
 function hasRoutePermission(user: SessionUser, pathname: string): boolean {
-  // Admin routes require admin access
-  if (pathname.startsWith('/admin')) {
-    return user.permissions.includes('admin.access') || user.role === 'super_admin';
-  }
+  // Get required permissions for this route
+  const requiredPermissions = RouteUtils.getRequiredPermissions(pathname);
   
-  // Dashboard requires basic dashboard access
-  if (pathname.startsWith('/dashboard')) {
-    return user.permissions.includes('dashboard.access');
-  }
-  
-  // Profile routes are generally accessible to authenticated users
-  if (pathname.startsWith('/profile')) {
+  // If no specific permissions required, allow access for authenticated users
+  if (requiredPermissions.length === 0) {
     return true;
   }
   
-  // Logout is accessible to all authenticated users
-  if (pathname === '/auth/logout') {
+  // Super admin has access to everything
+  if (user.role === 'super_admin') {
     return true;
   }
   
-  // For any other protected route, allow if user is authenticated
-  return true;
+  // Check if user has any of the required permissions
+  return RouteUtils.canAccessRoute(user.permissions, pathname);
 }
 
 // Function to check if token is expired
@@ -158,10 +105,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
       }
     }
 
-    // Route protection logic
-    const isPublic = matchesRoutePattern(pathname, publicRoutes);
-    const isAuthRoute = matchesRoutePattern(pathname, authRoutes);
-    const isProtected = matchesRoutePattern(pathname, protectedRoutes);
+    // Use RouteUtils for route classification
+    const isPublic = RouteUtils.isPublicRoute(pathname);
+    const isAuthRoute = RouteUtils.isAuthRoute(pathname);
+    const isProtected = RouteUtils.isProtectedRoute(pathname);
 
     console.log(`🛣️  Route analysis for ${pathname}:`, { isPublic, isAuthRoute, isProtected, isAuthenticated: locals.isAuthenticated });
 
@@ -169,9 +116,11 @@ export const onRequest = defineMiddleware(async (context, next) => {
     if (request.method === 'GET') {
       if (isAuthRoute && locals.isAuthenticated) {
         // Already logged in, redirect to dashboard
-        console.log(`🔀 Redirecting authenticated user from ${pathname} to /dashboard`);
-        const redirectUrl = new URL('/dashboard', url.origin);
-        return context.redirect(redirectUrl.toString(), 302);
+        console.log(`🔀 Redirecting authenticated user from ${pathname} to dashboard`);
+        const redirectUrl = locals.user ? 
+          RouteUtils.getDefaultRedirectAfterLogin(locals.user.role) : 
+          redirectConfig.defaultLoginRedirect;
+        return context.redirect(new URL(redirectUrl, url.origin).toString(), 302);
       }
 
       if (isProtected && !locals.isAuthenticated) {
@@ -185,8 +134,8 @@ export const onRequest = defineMiddleware(async (context, next) => {
       // Check permissions for protected routes
       if (isProtected && locals.isAuthenticated && locals.user) {
         if (!hasRoutePermission(locals.user, pathname)) {
-          console.log(`🔀 User lacks permission for ${pathname}, redirecting to /unauthorized`);
-          const unauthorizedUrl = new URL('/unauthorized', url.origin);
+          console.log(`🔀 User lacks permission for ${pathname}, redirecting to unauthorized`);
+          const unauthorizedUrl = new URL(redirectConfig.unauthorizedRedirect, url.origin);
           return context.redirect(unauthorizedUrl.toString(), 302);
         }
       }
@@ -214,7 +163,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
     locals.isAuthenticated = false;
     
     // For GET requests to protected routes, redirect to login on error
-    if (request.method === 'GET' && matchesRoutePattern(pathname, protectedRoutes)) {
+    if (request.method === 'GET' && RouteUtils.isProtectedRoute(pathname)) {
       console.log(`🔀 Redirecting to login due to middleware error on ${pathname}`);
       const loginUrl = new URL('/auth/login', url.origin);
       loginUrl.searchParams.set('error', 'session-error');
