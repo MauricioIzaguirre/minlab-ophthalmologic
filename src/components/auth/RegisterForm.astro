@@ -1,11 +1,15 @@
 ---
-// RegisterForm.astro - Functional Registration Component with Astro v5 Actions
+// RegisterForm.astro - Corregido SIN redirección del servidor para evitar ResponseSentError
 import { actions } from 'astro:actions';
 
 // Get any action result from the current request
 const result = Astro.getActionResult(actions.register);
 const error = result?.error;
 const success = result?.data?.success;
+const data = result?.data;
+
+// IMPORTANTE: NO hacer Astro.redirect() aquí porque causa ResponseSentError
+// La redirección se maneja completamente en el frontend
 ---
 
 <div class="card w-full">
@@ -18,12 +22,6 @@ const success = result?.data?.success;
   {error && (
     <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 mb-4 text-sm">
       {error.message}
-    </div>
-  )}
-
-  {success && (
-    <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 mb-4 text-sm">
-      Account created successfully! Please check your email to verify your account.
     </div>
   )}
 
@@ -145,11 +143,12 @@ const success = result?.data?.success;
       </div>
 
       <button type="submit" class="btn w-full" id="register-btn">
-        Create account
+        <span class="btn-text">Create account</span>
+        <div class="btn-spinner hidden">
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        </div>
       </button>
     </form>
-
-
   </section>
 
   <footer class="mt-6 text-center">
@@ -162,19 +161,46 @@ const success = result?.data?.success;
   </footer>
 </div>
 
-<!-- Loading overlay (initially hidden) -->
-<div class="card w-full hidden" id="loading-overlay">
-  <div class="flex flex-col items-center gap-4 py-8">
-    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    <p class="text-muted-foreground">Creating your account...</p>
-  </div>
-</div>
-
 <script>
-  const registerForm = document.getElementById('register-form') as HTMLFormElement;
+  interface RegisterFormElements extends HTMLFormControlsCollection {
+    first_name: HTMLInputElement;
+    last_name: HTMLInputElement;
+    email: HTMLInputElement;
+    phone: HTMLInputElement;
+    password: HTMLInputElement;
+    confirm_password: HTMLInputElement;
+    terms: HTMLInputElement;
+    marketing: HTMLInputElement;
+  }
+
+  interface RegisterForm extends HTMLFormElement {
+    readonly elements: RegisterFormElements;
+  }
+
+  // Utility function to show toast notifications
+  function showToast(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') {
+    // Try basecoat event first
+    document.dispatchEvent(new CustomEvent('basecoat:toast', {
+      detail: {
+        config: {
+          category: type,
+          title: type.charAt(0).toUpperCase() + type.slice(1),
+          description: message,
+          cancel: { label: 'Dismiss' }
+        }
+      }
+    }));
+
+    // Also trigger custom app event as fallback
+    document.dispatchEvent(new CustomEvent('app:toast', {
+      detail: { message, type }
+    }));
+  }
+
+  const registerForm = document.getElementById('register-form') as RegisterForm;
   const registerBtn = document.getElementById('register-btn') as HTMLButtonElement;
-  const loadingOverlay = document.getElementById('loading-overlay');
-  const registerCard = document.querySelector('.card:not(.hidden)');
+  const btnText = registerBtn.querySelector('.btn-text');
+  const btnSpinner = registerBtn.querySelector('.btn-spinner');
   const passwordInput = document.getElementById('password') as HTMLInputElement;
   const confirmPasswordInput = document.getElementById('confirm_password') as HTMLInputElement;
   const strengthContainer = document.getElementById('password-strength');
@@ -258,46 +284,119 @@ const success = result?.data?.success;
       // Validate passwords match
       if (!validatePasswordMatch()) {
         e.preventDefault();
+        showToast('Passwords do not match. Please verify your password.', 'error');
         return;
       }
 
       // Show loading state
       registerBtn.disabled = true;
-      registerBtn.textContent = 'Creating account...';
-      
-      // Show loading overlay after short delay if form is slow
-      const loadingTimeout = setTimeout(() => {
-        registerCard?.classList.add('hidden');
-        loadingOverlay?.classList.remove('hidden');
-      }, 1000);
-      
-      // Clear timeout if form completes quickly
-      const observer = new MutationObserver(() => {
-        clearTimeout(loadingTimeout);
-      });
-      observer.observe(document.body, { childList: true, subtree: true });
+      btnText?.classList.add('hidden');
+      btnSpinner?.classList.remove('hidden');
     });
+
+    // Handle form response
+    registerForm.addEventListener('htmx:afterRequest', handleFormResponse);
+    
+    // Check if we have action result in the page
+    const hasActionResult = document.querySelector('[data-action-result]');
+    if (hasActionResult) {
+      const resultType = hasActionResult.getAttribute('data-result-type');
+      const resultMessage = hasActionResult.getAttribute('data-result-message');
+      
+      if (resultType === 'success' && resultMessage) {
+        showToast(resultMessage, 'success');
+        // Redirect after showing toast
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 2000);
+      } else if (resultType === 'error' && resultMessage) {
+        showToast(resultMessage, 'error');
+        resetForm();
+      }
+    }
   }
 
-  // Handle Google signup - REMOVED
-  // Google authentication not implemented in this application
-  
-  // Auto-redirect after successful registration
-  if (window.location.search.includes('success')) {
-    setTimeout(() => {
-      window.location.href = '/auth/login?message=account-created';
-    }, 3000);
+  function handleFormResponse(event: any) {
+    const xhr = event.detail.xhr;
+    resetForm();
+    
+    if (xhr.status >= 200 && xhr.status < 300) {
+      // Success - check response for redirect info
+      try {
+        const response = JSON.parse(xhr.responseText);
+        if (response.success) {
+          showToast('Account created successfully! Redirecting...', 'success');
+          setTimeout(() => {
+            window.location.href = response.redirect || '/dashboard';
+          }, 2000);
+        }
+      } catch (e) {
+        // Fallback if response isn't JSON
+        showToast('Account created successfully! Redirecting...', 'success');
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 2000);
+      }
+    } else {
+      // Error
+      showToast('Registration failed. Please check your information and try again.', 'error');
+    }
+  }
+
+  function resetForm() {
+    if (registerBtn) {
+      registerBtn.disabled = false;
+      btnText?.classList.remove('hidden');
+      btnSpinner?.classList.add('hidden');
+    }
   }
 
   // Clear form on back navigation
   window.addEventListener('pageshow', function(event) {
     if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
       registerForm?.reset();
-      if (registerBtn) {
-        registerBtn.disabled = false;
-        registerBtn.textContent = 'Create account';
-      }
+      resetForm();
       strengthContainer!.style.display = 'none';
     }
   });
+
+  // Auto-focus first name field
+  document.addEventListener('DOMContentLoaded', () => {
+    const firstNameField = document.getElementById('first_name') as HTMLInputElement;
+    if (firstNameField && !firstNameField.value) {
+      firstNameField.focus();
+    }
+  });
 </script>
+
+<style>
+  .btn-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+</style>
+
+<!-- Hidden element to pass action result data to JavaScript -->
+{success && (
+  <div 
+    data-action-result 
+    data-result-type="success" 
+    data-result-message={data?.message}
+    style="display: none;"
+  ></div>
+)}
+
+{error && (
+  <div 
+    data-action-result 
+    data-result-type="error" 
+    data-result-message={error.message}
+    style="display: none;"
+  ></div>
+)}

@@ -1,0 +1,188 @@
+---
+// src/components/notifications/ToastIsland.astro - Server Island para Toast
+interface Props {
+  message?: string;
+  type?: 'success' | 'error' | 'info' | 'warning';
+}
+
+const { message, type = 'info' } = Astro.props;
+---
+
+<div id="toast-container" class="toaster" data-align="end">
+  {message && (
+    <div class="toast" role="status" aria-atomic="true" aria-hidden="false" data-category={type} data-duration="4000">
+      <div class="toast-content">
+        <!-- Icon based on type -->
+        {type === 'success' && (
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="m9 12 2 2 4-4" />
+          </svg>
+        )}
+        
+        {type === 'error' && (
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="15" y1="9" x2="9" y2="15" />
+            <line x1="9" y1="9" x2="15" y2="15" />
+          </svg>
+        )}
+        
+        {type === 'warning' && (
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <circle cx="12" cy="17" r="1"/>
+          </svg>
+        )}
+        
+        {type === 'info' && (
+          <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+          </svg>
+        )}
+
+        <section>
+          <h2>{type === 'success' ? 'Success' : type === 'error' ? 'Error' : type === 'warning' ? 'Warning' : 'Info'}</h2>
+          <p>{message}</p>
+        </section>
+
+        <footer>
+          <button type="button" class="btn-outline" data-toast-action>Dismiss</button>
+        </footer>
+      </div>
+    </div>
+  )}
+</div>
+
+<script>
+  // Toast functionality
+  class ToastManager {
+    private container: HTMLElement | null = null;
+
+    constructor() {
+      this.init();
+    }
+
+    private init() {
+      this.container = document.getElementById('toast-container');
+      this.setupEventListeners();
+    }
+
+    private setupEventListeners() {
+      // Listen for custom toast events
+      document.addEventListener('app:toast', (event: Event) => {
+        const customEvent = event as CustomEvent;
+        this.show(customEvent.detail);
+      });
+
+      // Listen for basecoat toast events
+      document.addEventListener('basecoat:toast', (event: Event) => {
+        const customEvent = event as CustomEvent;
+        this.show(customEvent.detail.config);
+      });
+    }
+
+    public show(config: {
+      message: string;
+      type?: 'success' | 'error' | 'info' | 'warning';
+      duration?: number;
+    }) {
+      if (!this.container) return;
+
+      const { message, type = 'info', duration = 4000 } = config;
+      
+      const toast = this.createToastElement(message, type, duration);
+      this.container.appendChild(toast);
+
+      // Auto-hide after duration
+      setTimeout(() => {
+        this.hide(toast);
+      }, duration);
+    }
+
+    private createToastElement(message: string, type: string, duration: number): HTMLElement {
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-atomic', 'true');
+      toast.setAttribute('aria-hidden', 'false');
+      toast.setAttribute('data-category', type);
+      toast.setAttribute('data-duration', duration.toString());
+
+      const iconSvg = this.getIconSvg(type);
+      const typeTitle = type.charAt(0).toUpperCase() + type.slice(1);
+
+      toast.innerHTML = `
+        <div class="toast-content">
+          ${iconSvg}
+          <section>
+            <h2>${typeTitle}</h2>
+            <p>${message}</p>
+          </section>
+          <footer>
+            <button type="button" class="btn-outline" data-toast-action>Dismiss</button>
+          </footer>
+        </div>
+      `;
+
+      // Add dismiss functionality
+      const dismissBtn = toast.querySelector('[data-toast-action]');
+      dismissBtn?.addEventListener('click', () => this.hide(toast));
+
+      return toast;
+    }
+
+    private getIconSvg(type: string): string {
+      const icons = {
+        success: `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" /></svg>`,
+        error: `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>`,
+        warning: `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="17" r="1"/></svg>`,
+        info: `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>`
+      };
+      return icons[type as keyof typeof icons] || icons.info;
+    }
+
+    private hide(toast: HTMLElement) {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }
+  }
+
+  // Initialize toast manager when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => new ToastManager());
+  } else {
+    new ToastManager();
+  }
+
+  // Make it globally available
+  (window as any).toastManager = new ToastManager();
+</script>
+
+<style>
+  .toaster {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+  }
+
+  .toast {
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+</style>

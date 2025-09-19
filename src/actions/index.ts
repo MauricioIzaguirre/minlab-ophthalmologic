@@ -15,6 +15,7 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(1, 'La contraseña es requerida'),
+  redirect_to: z.string().optional().default('/dashboard'),
 });
 
 const recoverPasswordSchema = z.object({
@@ -101,7 +102,7 @@ function getAuthErrorMessage(error: unknown): string {
 }
 
 export const server = {
-  // Registrar usuario - Mejorado
+  // Registrar usuario - Mejorado con redirección
   register: defineAction({
     accept: 'form',
     input: registerSchema,
@@ -130,10 +131,19 @@ export const server = {
         // Guardar en sesión
         await context.session?.set('user', sessionUser);
 
+        // Las Actions no pueden hacer redirecciones del servidor
+        // Devolver datos para redirección del cliente
         return { 
           success: true, 
           message: 'Usuario registrado exitosamente',
-          redirect: '/dashboard'
+          redirect: '/dashboard',
+          shouldRedirect: true,
+          user: {
+            id: sessionUser.id,
+            email: sessionUser.email,
+            first_name: sessionUser.first_name,
+            last_name: sessionUser.last_name
+          }
         };
       } catch (error) {
         console.error('❌ Registration error:', error);
@@ -146,7 +156,7 @@ export const server = {
     },
   }),
 
-  // Iniciar sesión - Mejorado con mejor manejo de errores
+  // Iniciar sesión - CORREGIDO con manejo de redirección
   login: defineAction({
     accept: 'form',
     input: loginSchema,
@@ -175,15 +185,23 @@ export const server = {
         const endTime = Date.now();
         console.log(`🎉 Login completed successfully in ${endTime - startTime}ms`);
 
+        // Determinar URL de redirección
+        const redirectUrl = input.redirect_to || '/dashboard';
+
+        // Las Actions no pueden hacer redirecciones del servidor
+        // Devolver datos para redirección del cliente
         return { 
           success: true, 
           message: 'Sesión iniciada exitosamente',
-          redirect: '/dashboard',
+          redirect: redirectUrl,
+          shouldRedirect: true,
           user: {
             id: sessionUser.id,
             email: sessionUser.email,
             first_name: sessionUser.first_name,
-            last_name: sessionUser.last_name
+            last_name: sessionUser.last_name,
+            role: sessionUser.role,
+            permissions: sessionUser.permissions
           }
         };
       } catch (error) {
@@ -198,7 +216,7 @@ export const server = {
     },
   }),
 
-  // Cerrar sesión - Mejorado
+  // Cerrar sesión - Mejorado con redirección
   logout: defineAction({
     handler: async (_input, context) => {
       try {
@@ -222,10 +240,13 @@ export const server = {
         
         console.log('✅ Local session destroyed');
 
+        // Las Actions no pueden hacer redirecciones del servidor
+        // Devolver datos para redirección del cliente
         return { 
           success: true, 
           message: 'Sesión cerrada exitosamente',
-          redirect: '/auth/login?message=logged-out'
+          redirect: '/auth/login?message=logged-out',
+          shouldRedirect: true
         };
       } catch (error) {
         console.error('❌ Logout error:', error);
@@ -261,7 +282,9 @@ export const server = {
 
         return { 
           success: true, 
-          message: 'Se ha enviado un email para recuperar la contraseña' 
+          message: 'Se ha enviado un email para recuperar la contraseña',
+          showToast: true,
+          toastType: 'success' as const
         };
       } catch (error) {
         console.error('❌ Password recovery error:', error);
@@ -300,7 +323,9 @@ export const server = {
 
         return { 
           success: true, 
-          message: 'Contraseña actualizada exitosamente' 
+          message: 'Contraseña actualizada exitosamente',
+          showToast: true,
+          toastType: 'success' as const
         };
       } catch (error) {
         console.error('❌ Password update error:', error);
@@ -313,7 +338,7 @@ export const server = {
     },
   }),
 
-  // Actualizar metadata de usuario - Mantenido igual pero con mejor logging
+  // Actualizar metadata de usuario - Mejorado con toast
   updateUserMetadata: defineAction({
     accept: 'form',
     input: updateUserMetadataSchema,
@@ -354,7 +379,9 @@ export const server = {
 
         return { 
           success: true, 
-          message: 'Perfil actualizado exitosamente' 
+          message: 'Perfil actualizado exitosamente',
+          showToast: true,
+          toastType: 'success' as const
         };
       } catch (error) {
         console.error('❌ Update metadata error:', error);
@@ -367,7 +394,7 @@ export const server = {
     },
   }),
 
-  // Resto de las acciones mantenidas igual pero con mejor logging
+  // Actualizar perfil completo - Mejorado con toast
   updateCompleteProfile: defineAction({
     accept: 'form',
     input: updateCompleteProfileSchema,
@@ -390,7 +417,9 @@ export const server = {
 
         return { 
           success: true, 
-          message: 'Perfil completo actualizado exitosamente' 
+          message: 'Perfil completo actualizado exitosamente',
+          showToast: true,
+          toastType: 'success' as const
         };
       } catch (error) {
         console.error('❌ Update complete profile error:', error);

@@ -21,12 +21,17 @@ const authRoutes = [
   '/auth/reset-password',
 ];
 
-// Routes that require authentication
+// Routes that require authentication 
 const protectedRoutes = [
   '/dashboard',
-  '/profile',
-  '/admin',
+  '/appointment',
+  '/doctors',
   '/auth/logout',
+  '/services',
+  '/patients',
+  '/histories',
+  '/reports',
+  '/settings'
 ];
 
 // Function to check if a path matches any route pattern
@@ -93,12 +98,23 @@ function createSessionUser(authResponse: any, permissions: string[]): SessionUse
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const { url, locals, session } = context;
+  const { url, locals, session, request } = context;
   const pathname = url.pathname;
+
+  console.log(`🔍 Middleware processing: ${request.method} ${pathname}`);
 
   // Initialize locals with default values
   locals.isAuthenticated = false;
   locals.user = undefined;
+
+  // Skip middleware for static assets and API routes
+  if (pathname.startsWith('/_astro/') || 
+      pathname.startsWith('/favicon') || 
+      pathname.startsWith('/api/') ||
+      pathname.includes('.')) {
+    console.log(`⚡ Skipping middleware for static/API route: ${pathname}`);
+    return next();
+  }
 
   try {
     // Get user from session
@@ -108,7 +124,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
       // Check if token is expired
       if (isTokenExpired(sessionUser.expires_at)) {
         try {
-          console.log('Token expired, attempting refresh...');
+          console.log('🔄 Token expired, attempting refresh...');
           
           // Attempt to refresh the token
           const refreshResponse = await authService.refreshToken({
@@ -125,9 +141,9 @@ export const onRequest = defineMiddleware(async (context, next) => {
           locals.user = updatedUser;
           locals.isAuthenticated = true;
           
-          console.log('Token refreshed successfully');
+          console.log('✅ Token refreshed successfully');
         } catch (error) {
-          console.error('Failed to refresh token:', error);
+          console.error('❌ Failed to refresh token:', error);
           
           // Clear invalid session
           await session?.destroy();
@@ -138,6 +154,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
         // Token is valid
         locals.user = sessionUser;
         locals.isAuthenticated = true;
+        console.log(`✅ Valid session found for user: ${sessionUser.email}`);
       }
     }
 
@@ -146,41 +163,62 @@ export const onRequest = defineMiddleware(async (context, next) => {
     const isAuthRoute = matchesRoutePattern(pathname, authRoutes);
     const isProtected = matchesRoutePattern(pathname, protectedRoutes);
 
-    // Handle authentication redirects
-    if (isAuthRoute && locals.isAuthenticated) {
-      // Already logged in, redirect to dashboard
-      console.log(`Redirecting authenticated user from ${pathname} to /dashboard`);
-      return context.redirect('/dashboard');
-    }
+    console.log(`🛣️  Route analysis for ${pathname}:`, { isPublic, isAuthRoute, isProtected, isAuthenticated: locals.isAuthenticated });
 
-    if (isProtected && !locals.isAuthenticated) {
-      // Need authentication, redirect to login
-      console.log(`Redirecting unauthenticated user from ${pathname} to /auth/login`);
-      return context.redirect(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
-    }
+    // Handle authentication redirects for GET requests only
+    if (request.method === 'GET') {
+      if (isAuthRoute && locals.isAuthenticated) {
+        // Already logged in, redirect to dashboard
+        console.log(`🔀 Redirecting authenticated user from ${pathname} to /dashboard`);
+        const redirectUrl = new URL('/dashboard', url.origin);
+        return context.redirect(redirectUrl.toString(), 302);
+      }
 
-    // Check permissions for protected routes
-    if (isProtected && locals.isAuthenticated && locals.user) {
-      if (!hasRoutePermission(locals.user, pathname)) {
-        console.log(`User lacks permission for ${pathname}, redirecting to /unauthorized`);
-        return context.redirect('/unauthorized');
+      if (isProtected && !locals.isAuthenticated) {
+        // Need authentication, redirect to login
+        console.log(`🔀 Redirecting unauthenticated user from ${pathname} to login`);
+        const loginUrl = new URL('/auth/login', url.origin);
+        loginUrl.searchParams.set('redirect', pathname);
+        return context.redirect(loginUrl.toString(), 302);
+      }
+
+      // Check permissions for protected routes
+      if (isProtected && locals.isAuthenticated && locals.user) {
+        if (!hasRoutePermission(locals.user, pathname)) {
+          console.log(`🔀 User lacks permission for ${pathname}, redirecting to /unauthorized`);
+          const unauthorizedUrl = new URL('/unauthorized', url.origin);
+          return context.redirect(unauthorizedUrl.toString(), 302);
+        }
       }
     }
 
-    // Continue to the route
+    // For POST requests (form submissions), just continue to allow actions to handle
+    if (request.method === 'POST') {
+      console.log(`📝 Allowing POST request to ${pathname} to proceed to actions`);
+    }
+
+    console.log(`✅ Middleware allowing access to ${pathname}`);
     return next();
 
   } catch (error) {
-    console.error('Middleware error:', error);
+    console.error('❌ Middleware error:', error);
     
     // Clear session on error and continue
-    await session?.destroy();
+    try {
+      await session?.destroy();
+    } catch (destroyError) {
+      console.error('❌ Failed to destroy session:', destroyError);
+    }
+    
     locals.user = undefined;
     locals.isAuthenticated = false;
     
-    // For protected routes, redirect to login on error
-    if (matchesRoutePattern(pathname, protectedRoutes)) {
-      return context.redirect('/auth/login?error=session-error');
+    // For GET requests to protected routes, redirect to login on error
+    if (request.method === 'GET' && matchesRoutePattern(pathname, protectedRoutes)) {
+      console.log(`🔀 Redirecting to login due to middleware error on ${pathname}`);
+      const loginUrl = new URL('/auth/login', url.origin);
+      loginUrl.searchParams.set('error', 'session-error');
+      return context.redirect(loginUrl.toString(), 302);
     }
     
     return next();
