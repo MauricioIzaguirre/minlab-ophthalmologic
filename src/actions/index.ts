@@ -154,7 +154,9 @@ export const server = {
     },
   }),
 
-  // Iniciar sesión
+  // ✅ LOGIN ACTION CORREGIDA - src/actions/index.ts (fragmento)
+
+// Iniciar sesión
 login: defineAction({
   accept: 'form',
   input: loginSchema,
@@ -183,11 +185,11 @@ login: defineAction({
       const endTime = Date.now();
       console.log(`🎉 Login completed successfully in ${endTime - startTime}ms`);
 
-      // ✅ CORREGIDO: Solo usar 'redirectUrl' consistentemente
+      // ✅ CLAVE: NO devolver 'shouldRedirect' - la redirección se maneja en el frontend
       return { 
         success: true, 
         message: 'Login successful',
-        // ✅ Solo 'redirectUrl' - eliminar 'redirect' para evitar confusión
+        // ✅ Solo incluir URL de redirección sin forzar redirección del servidor
         redirectUrl: input.redirect_to || '/dashboard',
         user: {
           id: sessionUser.id,
@@ -211,9 +213,7 @@ login: defineAction({
   },
 }),
 
-// FIXED: Logout action - src/actions/index.ts (fragmento corregido)
-
-// src/actions/index.ts - LOGOUT ACTION CORREGIDA
+// ✅ LOGOUT ACTION COMPLETAMENTE CORREGIDA - src/actions/index.ts (fragmento)
 
 logout: defineAction({
   accept: 'form',
@@ -225,34 +225,32 @@ logout: defineAction({
       
       if (sessionUser) {
         try {
+          // ✅ Intento de logout en Supabase (opcional)
           await authService.logout(sessionUser.access_token);
           console.log('✅ Supabase logout successful');
         } catch (supabaseError) {
+          // ✅ Log del error pero continúa - El logout local es más importante
           const errorMessage = supabaseError instanceof Error ? supabaseError.message : String(supabaseError);
-          
-          if (errorMessage.includes('Unexpected end of JSON input')) {
-            console.log('✅ Supabase logout successful (empty response - typical behavior)');
-          } else {
-            console.warn('⚠️ Supabase logout failed, continuing with local logout:', errorMessage);
-          }
+          console.warn('⚠️ Supabase logout warning (continuing with local logout):', errorMessage);
         }
       }
 
-      // ✅ SIEMPRE destruir sesión local
+      // ✅ SIEMPRE destruir sesión local (esto es lo crítico)
       await context.session?.destroy();
-      console.log('✅ Local session destroyed');
+      console.log('✅ Local session destroyed successfully');
 
-      // ✅ CORREGIDO: Solo devolver datos, sin redirecciones
+      // ✅ CLAVE: NO devolver 'shouldRedirect' - la redirección se maneja en el frontend
       return { 
         success: true, 
         message: 'Logout successful',
+        // ✅ Incluir URL de redirección pero sin forzar redirección del servidor
         redirectUrl: '/auth/login?message=logged-out'
       };
       
     } catch (error) {
       console.error('❌ Logout error:', error);
       
-      // ✅ Asegurar limpieza de sesión aunque falle todo
+      // ✅ Forzar limpieza de sesión aunque haya errores
       try {
         await context.session?.destroy();
         console.log('✅ Session destroyed in error handler');
@@ -260,7 +258,7 @@ logout: defineAction({
         console.error('❌ Failed to destroy session:', destroyError);
       }
       
-      // ✅ Devolver éxito aunque haya errores
+      // ✅ Siempre devolver éxito para el logout - la limpieza local es lo importante
       return { 
         success: true, 
         message: 'Logout completed with cleanup',
@@ -269,7 +267,6 @@ logout: defineAction({
     }
   },
 }),
-
   // Recuperar contraseña
   recoverPassword: defineAction({
     accept: 'form',
