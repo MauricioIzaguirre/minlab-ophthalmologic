@@ -1,4 +1,4 @@
-// src/lib/auth.ts - VERSIÓN COMPLETA CORREGIDA
+// src/lib/auth.ts - CORREGIDO: Usar el endpoint que funciona en Postman
 
 import type {
   RegisterRequest,
@@ -41,11 +41,20 @@ class AuthService {
     return headers;
   }
 
-  // ✅ MANEJADOR DE RESPUESTAS MEJORADO
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
-      throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+      // Log más detallado del error
+      const errorText = await response.text();
+      console.error(`❌ Supabase API Error [${response.status}]:`, errorText);
+      
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch {
+        errorData = { message: errorText || `HTTP ${response.status}: ${response.statusText}` };
+      }
+      
+      throw new Error(errorData.message || errorData.error_description || `HTTP ${response.status}: ${response.statusText}`);
     }
 
     // Manejar respuestas vacías (204 No Content)
@@ -59,27 +68,38 @@ class AuthService {
       return response.json();
     }
 
-    // Si no es JSON, devolver objeto genérico de éxito
     return { message: 'Success' } as T;
   }
 
   // Registrar usuario
   async register(data: RegisterRequest): Promise<AuthResponse> {
+    console.log('🔐 Calling Supabase register endpoint:', `${this.baseUrl}/auth/v1/signup`);
+    
     const response = await fetch(`${this.baseUrl}/auth/v1/signup`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+        data: data.data, // user_metadata
+      }),
     });
 
     return this.handleResponse<AuthResponse>(response);
   }
 
-  // Iniciar sesión
+  // ✅ CORREGIDO: Usar el endpoint que funciona en Postman
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await fetch(`${this.baseUrl}/auth/v1/token?grant_type=password`, {
+    const endpoint = `${this.baseUrl}/auth/v1/token?grant_type=password`;
+    console.log('🔐 Calling Supabase login endpoint:', endpoint);
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+      }),
     });
 
     return this.handleResponse<AuthResponse>(response);
@@ -87,10 +107,14 @@ class AuthService {
 
   // Recuperar contraseña
   async recoverPassword(data: RecoverPasswordRequest): Promise<{ message: string }> {
+    console.log('📧 Calling Supabase recover endpoint:', `${this.baseUrl}/auth/v1/recover`);
+    
     const response = await fetch(`${this.baseUrl}/auth/v1/recover`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        email: data.email,
+      }),
     });
 
     return this.handleResponse<{ message: string }>(response);
@@ -98,10 +122,14 @@ class AuthService {
 
   // Actualizar contraseña
   async updatePassword(data: UpdatePasswordRequest, token: string): Promise<{ message: string }> {
+    console.log('🔒 Calling Supabase update password endpoint:', `${this.baseUrl}/auth/v1/user`);
+    
     const response = await fetch(`${this.baseUrl}/auth/v1/user`, {
       method: 'PUT',
       headers: this.getHeaders(true, token),
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        password: data.password,
+      }),
     });
 
     return this.handleResponse<{ message: string }>(response);
@@ -109,10 +137,14 @@ class AuthService {
 
   // Actualizar metadata de usuario
   async updateUserMetadata(data: UpdateUserMetadataRequest, token: string): Promise<{ message: string }> {
+    console.log('👤 Calling Supabase update metadata endpoint:', `${this.baseUrl}/auth/v1/user`);
+    
     const response = await fetch(`${this.baseUrl}/auth/v1/user`, {
       method: 'PUT',
       headers: this.getHeaders(true, token),
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        data: data.data, // user_metadata
+      }),
     });
 
     return this.handleResponse<{ message: string }>(response);
@@ -120,6 +152,8 @@ class AuthService {
 
   // Actualizar perfil completo
   async updateCompleteProfile(data: UpdateCompleteProfileRequest, token: string): Promise<{ message: string }> {
+    console.log('📋 Calling Supabase RPC complete profile endpoint');
+    
     const response = await fetch(`${this.baseUrl}/rest/v1/rpc/update_complete_profile`, {
       method: 'POST',
       headers: this.getHeaders(true, token),
@@ -129,8 +163,10 @@ class AuthService {
     return this.handleResponse<{ message: string }>(response);
   }
 
-  // ✅ MÉTODO LOGOUT COMPLETAMENTE CORREGIDO
+  // Logout
   async logout(token: string): Promise<{ message: string }> {
+    console.log('🚪 Calling Supabase logout endpoint:', `${this.baseUrl}/auth/v1/logout`);
+    
     try {
       const response = await fetch(`${this.baseUrl}/auth/v1/logout`, {
         method: 'POST',
@@ -138,33 +174,30 @@ class AuthService {
         body: JSON.stringify({}),
       });
 
-      // Supabase típicamente devuelve 204 No Content para logout exitoso
-      if (response.status === 204) {
-        console.log('✅ Supabase logout successful (204 No Content)');
+      // Supabase logout típicamente devuelve 204 No Content
+      if (response.status === 204 || response.ok) {
+        console.log('✅ Supabase logout successful');
         return { message: 'Logout successful' };
       }
 
-      // Para otros códigos de éxito
-      if (response.ok) {
-        console.log(`✅ Supabase logout successful (${response.status})`);
-        return this.handleResponse<{ message: string }>(response);
-      }
-
-      // Si no es exitoso, lanzar error
       throw new Error(`Logout failed with status ${response.status}`);
-
     } catch (error) {
       console.error('❌ Supabase logout error:', error);
       throw error;
     }
   }
 
-  // Renovar token
+  // ✅ CORREGIDO: Refresh token endpoint - sin query params
   async refreshToken(data: RefreshTokenRequest): Promise<AuthResponse> {
-    const response = await fetch(`${this.baseUrl}/auth/v1/token?grant_type=refresh_token`, {
+    const endpoint = `${this.baseUrl}/auth/v1/token?grant_type=refresh_token`;
+    console.log('🔄 Calling Supabase refresh token endpoint:', endpoint);
+    
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        refresh_token: data.refresh_token,
+      }),
     });
 
     return this.handleResponse<AuthResponse>(response);
@@ -172,6 +205,8 @@ class AuthService {
 
   // Ver perfil completo de usuario
   async getCurrentUserProfile(token: string): Promise<UserProfile> {
+    console.log('👤 Calling RPC get current user profile');
+    
     const response = await fetch(`${this.baseUrl}/rest/v1/rpc/get_current_user_profile`, {
       method: 'POST',
       headers: this.getHeaders(true, token),
@@ -181,8 +216,10 @@ class AuthService {
     return this.handleResponse<UserProfile>(response);
   }
 
-  // Revelar permisos de usuario
+  // Obtener permisos de usuario
   async getUserPermissions(token: string): Promise<UserPermissions> {
+    console.log('🔐 Calling RPC debug user permissions');
+    
     const response = await fetch(`${this.baseUrl}/rest/v1/rpc/debug_user_permissions`, {
       method: 'POST',
       headers: this.getHeaders(true, token),

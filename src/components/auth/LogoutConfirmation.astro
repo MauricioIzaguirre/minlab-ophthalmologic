@@ -1,19 +1,18 @@
 ---
-// LogoutConfirmation.astro - REDIRECCIÓN INMEDIATA SEGUINDO MEJORES PRÁCTICAS
+// LogoutConfirmation.astro - CORREGIDO: Sin redirección en el servidor
 import { actions } from 'astro:actions';
 
-// ✅ MEJOR PRÁCTICA: Manejar redirección en la página, no en la action
+// ✅ SOLO obtener resultado, NUNCA hacer Astro.redirect()
 const result = Astro.getActionResult(actions.logout);
+const success = result?.data?.success;
+const error = result?.error;
 
-// ✅ REDIRECCIÓN INMEDIATA si el logout fue exitoso
-if (result && !result.error && result.data?.success) {
-  console.log('✅ Logout successful, redirecting immediately...');
-  return Astro.redirect('/auth/login?message=logged-out');
+// ✅ Solo logs - NUNCA redirecciones en el servidor
+if (error) {
+  console.error('❌ Logout error:', error.message);
 }
-
-// Log errors pero no bloquear la interfaz
-if (result?.error) {
-  console.error('❌ Logout error:', result.error.message);
+if (success) {
+  console.log('✅ Logout successful - redirect will be handled by JavaScript');
 }
 
 // Get URL search params for messages
@@ -29,9 +28,9 @@ if (errorParam) {
 const user = Astro.locals.user;
 ---
 
-<!-- ✅ View Transitions container -->
+<!-- ✅ Container para transiciones -->
 <div class="logout-container">
-  <!-- ✅ Logout card with transition name -->
+  <!-- ✅ Logout card -->
   <div class="card w-full text-center" id="logout-card" transition:name="logout-main-card">
     <header>
       <div class="flex justify-center mb-4">
@@ -42,7 +41,7 @@ const user = Astro.locals.user;
         </div>
       </div>
       <h2>Sign out of your account</h2>
-      <p>Are you sure you want to sign out? You'll need to sign in again to access your account.</p>
+      <p>Are you sure you want to sign out?</p>
     </header>
 
     <section class="my-6">
@@ -63,7 +62,7 @@ const user = Astro.locals.user;
         </div>
       </div>
       
-      <!-- Quick status indicators -->
+      <!-- Status indicators -->
       <div class="grid gap-2 text-sm">
         <p class="text-muted-foreground">Before you go:</p>
         <div class="flex items-center justify-center gap-4 text-xs">
@@ -89,8 +88,7 @@ const user = Astro.locals.user;
           Cancel
         </button>
         
-        <!-- ✅ MEJORADO: Form action con View Transitions automáticas -->
-        <form method="POST" action={actions.logout} class="flex-1" id="logout-form" data-astro-transition="persist">
+        <form method="POST" action={actions.logout} class="flex-1" id="logout-form">
           <button type="submit" class="btn w-full bg-destructive text-destructive-foreground hover:bg-destructive/90" id="logout-btn">
             <span class="btn-text">Sign out</span>
             <div class="btn-spinner hidden">
@@ -106,15 +104,24 @@ const user = Astro.locals.user;
     </footer>
   </div>
 
-  <!-- ✅ Loading state - Solo visual, no funcional -->
+  <!-- ✅ Loading state -->
   <div class="card w-full text-center hidden" id="loading-overlay" transition:name="logout-loading-card">
     <div class="flex flex-col items-center gap-4 py-16">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       <p class="text-lg text-muted-foreground">Signing you out...</p>
-      <p class="text-sm text-muted-foreground">Redirecting...</p>
+      <p class="text-sm text-muted-foreground">This will only take a moment...</p>
     </div>
   </div>
 </div>
+
+<!-- ✅ Hidden success flag para JavaScript -->
+{success && result?.data && (
+  <div 
+    id="logout-success-flag" 
+    style="display: none;" 
+    data-redirect={result.data.redirectUrl || '/auth/login?message=logged-out'}
+  ></div>
+)}
 
 <script>
   const logoutForm = document.getElementById('logout-form') as HTMLFormElement;
@@ -124,15 +131,30 @@ const user = Astro.locals.user;
   const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
   const loadingOverlay = document.getElementById('loading-overlay');
   const logoutCard = document.getElementById('logout-card');
+  const successFlag = document.getElementById('logout-success-flag');
 
-  // ✅ Handle cancel button - View Transitions nativas
+  // ✅ CLAVE: Handle successful logout INMEDIATAMENTE con JavaScript
+  if (successFlag) {
+    const redirectUrl = successFlag.getAttribute('data-redirect') || '/auth/login';
+    console.log('✅ Logout successful, redirecting to:', redirectUrl);
+    
+    // ✅ Redirección INMEDIATA con View Transitions
+    if ('startViewTransition' in document) {
+      (document as any).startViewTransition(() => {
+        window.location.href = redirectUrl;
+      });
+    } else {
+      window.location.href = redirectUrl;
+    }
+  }
+
+  // ✅ Handle cancel button
   function handleCancel() {
     console.log('🔙 User cancelled logout');
     const referrer = document.referrer;
     const fallbackUrl = referrer && !referrer.includes('/logout') ? referrer : '/dashboard';
     
-    // ✅ MEJOR: Usar navigate con View Transitions si está disponible
-    if ('startViewTransition' in document && 'navigation' in window) {
+    if ('startViewTransition' in document) {
       (document as any).startViewTransition(() => {
         window.location.href = fallbackUrl;
       });
@@ -141,77 +163,50 @@ const user = Astro.locals.user;
     }
   }
 
-  // Attach cancel handler
   if (cancelBtn) {
     cancelBtn.addEventListener('click', handleCancel);
   }
   
-  // ✅ MEJORADO: Form submission con UI feedback mínimo
+  // ✅ Handle logout form submission
   if (logoutForm) {
     logoutForm.addEventListener('submit', (e) => {
       console.log('🚪 Logout form submitted');
       
-      // ✅ UI feedback mínimo - solo spinner en botón
+      // Mostrar spinner en botón
       logoutBtn.disabled = true;
       btnText?.classList.add('hidden');
       btnSpinner?.classList.remove('hidden');
       
-      // ✅ OPCIONAL: Mostrar loading después de breve delay para UX
-      const showLoadingTimeout = setTimeout(() => {
+      // Toggle cards después de breve delay
+      setTimeout(() => {
         logoutCard?.classList.add('hidden');
         loadingOverlay?.classList.remove('hidden');
-      }, 500); // 500ms delay, suficiente para que se procese rápido
+      }, 300);
       
-      // ✅ IMPORTANTE: Limpiar timeout si el form se procesa rápido
-      logoutForm.addEventListener('submit', () => {
-        clearTimeout(showLoadingTimeout);
-      }, { once: true });
-      
-      // ✅ CRÍTICO: La redirección ocurre en el componente .astro automáticamente
-      // No hay setTimeout aquí - la respuesta del servidor redirige inmediatamente
+      // Fallback timeout por si algo falla
+      setTimeout(() => {
+        console.log('⚠️ Logout taking too long, forcing redirect...');
+        window.location.href = '/auth/login?message=logged-out';
+      }, 8000);
     });
   }
   
   // Handle ESC key to cancel
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      console.log('⌨️ ESC pressed, cancelling logout');
+    if (e.key === 'Escape' && !successFlag) {
       handleCancel();
     }
   });
 
   // Auto-focus cancel button for accessibility
   document.addEventListener('DOMContentLoaded', () => {
-    if (cancelBtn) {
+    if (cancelBtn && !successFlag) {
       cancelBtn.focus();
-      console.log('🎯 Cancel button focused');
-    }
-  });
-
-  // ✅ View Transitions event handlers
-  document.addEventListener('astro:page-load', () => {
-    console.log('📄 Logout page loaded');
-  });
-
-  // ✅ Limpiar estados si se navega de vuelta a esta página
-  document.addEventListener('astro:after-swap', () => {
-    // Reset button state
-    if (logoutBtn) {
-      logoutBtn.disabled = false;
-      btnText?.classList.remove('hidden');
-      btnSpinner?.classList.add('hidden');
-    }
-    
-    // Ensure correct card is showing
-    if (logoutCard && loadingOverlay) {
-      logoutCard.classList.remove('hidden');
-      loadingOverlay.classList.add('hidden');
     }
   });
 </script>
 
 <style>
-  /* ✅ Estilos esenciales - View Transitions maneja animaciones */
   .btn-spinner {
     display: flex;
     align-items: center;
@@ -223,13 +218,11 @@ const user = Astro.locals.user;
     cursor: not-allowed;
   }
 
-  /* ✅ Hover suave */
   .btn:hover:not(:disabled) {
     transform: translateY(-1px);
     transition: transform 0.2s ease;
   }
 
-  /* ✅ Container estable */
   .logout-container {
     width: 100%;
     min-height: 400px;
@@ -239,23 +232,7 @@ const user = Astro.locals.user;
     justify-content: center;
   }
 
-  /* ✅ Estados simples */
   .hidden {
     display: none !important;
-  }
-
-  /* ✅ Smooth transitions solo para elementos específicos */
-  .card {
-    transition: opacity 0.3s ease;
-  }
-
-  /* ✅ Loading animation optimizada */
-  .animate-spin {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
   }
 </style>

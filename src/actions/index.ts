@@ -225,11 +225,9 @@ logout: defineAction({
       
       if (sessionUser) {
         try {
-          // ✅ INTENTO DE LOGOUT EN SUPABASE
           await authService.logout(sessionUser.access_token);
           console.log('✅ Supabase logout successful');
         } catch (supabaseError) {
-          // ✅ MEJORADO: Log específico del error pero continúa
           const errorMessage = supabaseError instanceof Error ? supabaseError.message : String(supabaseError);
           
           if (errorMessage.includes('Unexpected end of JSON input')) {
@@ -240,35 +238,33 @@ logout: defineAction({
         }
       }
 
-      // ✅ SIEMPRE DESTRUIR SESIÓN LOCAL
+      // ✅ SIEMPRE destruir sesión local
       await context.session?.destroy();
-      
       console.log('✅ Local session destroyed');
 
+      // ✅ CORREGIDO: Solo devolver datos, sin redirecciones
       return { 
         success: true, 
-        message: 'Sesión cerrada exitosamente',
-        redirect: '/auth/login?message=logged-out',
-        shouldRedirect: true
+        message: 'Logout successful',
+        redirectUrl: '/auth/login?message=logged-out'
       };
       
     } catch (error) {
       console.error('❌ Logout error:', error);
       
-      // ✅ ASEGURAR LIMPIEZA DE SESIÓN AUNQUE FALLE TODO
+      // ✅ Asegurar limpieza de sesión aunque falle todo
       try {
         await context.session?.destroy();
         console.log('✅ Session destroyed in error handler');
       } catch (destroyError) {
-        console.error('❌ Failed to destroy session in error handler:', destroyError);
+        console.error('❌ Failed to destroy session:', destroyError);
       }
       
-      // ✅ DEVOLVER ÉXITO AUNQUE HAYA ERRORES - El logout local es lo importante
+      // ✅ Devolver éxito aunque haya errores
       return { 
         success: true, 
-        message: 'Sesión cerrada exitosamente (con limpieza forzada)',
-        redirect: '/auth/login?message=logged-out',
-        shouldRedirect: true
+        message: 'Logout completed with cleanup',
+        redirectUrl: '/auth/login?message=logged-out'
       };
     }
   },
