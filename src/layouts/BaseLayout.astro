@@ -1,7 +1,9 @@
 ---
+// BaseLayout.astro - CON SOLUCIÓN ANTI-PARPADEO MEJORADA
 import "../styles/global.css";
 import AppSidebar from "../components/layout/AppSidebar.astro";
 import AppHeader from "../components/layout/AppHeader.astro";
+import { ClientRouter } from "astro:transitions";
 
 export interface Props {
   title?: string;
@@ -24,55 +26,126 @@ const {
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
     
+    <!-- ✅ SOLUCIÓN ANTI-PARPADEO: Script ANTES de ClientRouter -->
+    <script is:inline>
+      (() => {
+        // ✅ Función para aplicar tema inmediatamente
+        function applyTheme() {
+          try {
+            const stored = localStorage.getItem('themeMode');
+            const prefersDark = matchMedia('(prefers-color-scheme: dark)').matches;
+            const shouldBeDark = stored ? stored === 'dark' : prefersDark;
+            
+            // ✅ CRÍTICO: Aplicar clase ANTES de cualquier renderizado
+            document.documentElement.classList.toggle('dark', shouldBeDark);
+            
+            // ✅ También aplicar al body para compatibilidad con Basecoat
+            if (document.body) {
+              document.body.classList.toggle('dark', shouldBeDark);
+            }
+            
+            return shouldBeDark;
+          } catch (e) {
+            console.warn('Theme detection failed:', e);
+            return false;
+          }
+        }
+
+        // ✅ APLICAR INMEDIATAMENTE
+        const isDark = applyTheme();
+        
+        // ✅ Función para cambio de tema
+        const changeTheme = (dark) => {
+          document.documentElement.classList.toggle('dark', dark);
+          if (document.body) {
+            document.body.classList.toggle('dark', dark);
+          }
+          try { 
+            localStorage.setItem('themeMode', dark ? 'dark' : 'light'); 
+          } catch (e) {
+            console.warn('Failed to save theme preference:', e);
+          }
+        };
+
+        // ✅ Event listener para basecoat
+        document.addEventListener('basecoat:theme', (event) => {
+          const mode = event.detail?.mode;
+          const newDark = mode === 'dark' ? true
+                         : mode === 'light' ? false
+                         : !document.documentElement.classList.contains('dark');
+          changeTheme(newDark);
+        });
+
+        // ✅ CRÍTICO: Preservar tema durante View Transitions
+        document.addEventListener('astro:before-swap', (event) => {
+          const currentDark = document.documentElement.classList.contains('dark');
+          
+          // ✅ Aplicar tema al nuevo documento INMEDIATAMENTE
+          event.newDocument.documentElement.classList.toggle('dark', currentDark);
+          
+          // ✅ También aplicar al body del nuevo documento
+          if (event.newDocument.body) {
+            event.newDocument.body.classList.toggle('dark', currentDark);
+          }
+          
+          console.log(`🎨 Theme preserved during transition: ${currentDark ? 'dark' : 'light'}`);
+        });
+
+        // ✅ Reforzar tema después del swap
+        document.addEventListener('astro:after-swap', () => {
+          // Re-aplicar tema por si acaso
+          applyTheme();
+          
+          // ✅ Re-inicializar Basecoat si es necesario
+          if (window.basecoat && typeof window.basecoat.init === 'function') {
+            try {
+              window.basecoat.init();
+            } catch (e) {
+              console.warn('Basecoat re-initialization failed:', e);
+            }
+          }
+        });
+
+        // ✅ Page load handler
+        document.addEventListener('astro:page-load', () => {
+          console.log('📄 Page loaded with View Transitions');
+          applyTheme(); // Reforzar tema
+        });
+
+        console.log(`🎨 Initial theme applied: ${isDark ? 'dark' : 'light'}`);
+      })();
+    </script>
+    
+    <!-- ✅ ClientRouter DESPUÉS del script de tema -->
+    <ClientRouter />
+    
     <!-- Preconnect to external domains for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    
-    
-    <!-- Theme Script - Must be in head for FOUC prevention -->
-    <script>
-      (() => {
-        try {
-          const stored = localStorage.getItem('themeMode');
-          if (stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-          }
-        } catch (_) {}
-
-        const apply = (dark: boolean) => {
-          document.documentElement.classList.toggle('dark', dark);
-          try { localStorage.setItem('themeMode', dark ? 'dark' : 'light'); } catch (_) {}
-        };
-
-        document.addEventListener('basecoat:theme', (event) => {
-          const mode = (event as CustomEvent).detail?.mode;
-          apply(mode === 'dark' ? true
-                : mode === 'light' ? false
-                : !document.documentElement.classList.contains('dark'));
-        });
-      })();
-    </script>
-    <!-- ✅ CORREGIDO: Scripts en orden correcto -->
-    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/basecoat.min.js" ></script>
+    <!-- ✅ Basecoat scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/basecoat.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/sidebar.min.js" defer></script>
-    
   </head>
 
   <body class="min-h-screen bg-background font-sans antialiased hide-scrollbar">
-    <!-- Main Application Container -->
-    <div class="relative flex min-h-screen w-full">
+    <!-- ✅ Main Application Container -->
+    <div class="relative flex min-h-screen w-full" transition:name="app-container">
       
-      <!-- Application Sidebar -->
-      <AppSidebar />
+      <!-- ✅ Application Sidebar -->
+      <div transition:name="app-sidebar">
+        <AppSidebar />
+      </div>
       
-      <!-- Main Content Area -->
-      <div class="flex flex-1 flex-col lg:ml-64">
-        <!-- Application Header -->
-        <AppHeader />
+      <!-- ✅ Main Content Area -->
+      <div class="flex flex-1 flex-col lg:ml-64" transition:name="main-content">
+        <!-- ✅ Application Header -->
+        <div transition:name="app-header">
+          <AppHeader />
+        </div>
         
-        <!-- Page Content -->
-        <main class="flex-1 p-4">
+        <!-- ✅ Page Content -->
+        <main class="flex-1 p-4" transition:name="page-content">
           <slot />
         </main>
       </div>
@@ -80,14 +153,23 @@ const {
   </body>
 </html>
 
-<!-- ✅ CORREGIDO: CSS mejorado para sidebar responsive -->
 <style>
-  /* Smooth transitions for theme switching */
-  html {
-    transition: background-color 0.2s ease, color 0.2s ease;
+  /* ✅ CRÍTICO: CSS Variables con !important para prevenir parpadeos */
+  :root {
+    --theme-transition: none !important; /* Disable CSS transitions during theme switch */
   }
 
-  /* Focus styles for accessibility */
+  /* ✅ Transiciones suaves solo para elementos específicos */
+  html {
+    /* NO transition en background para evitar flickers */
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /* ✅ Focus styles */
   button:focus-visible,
   input:focus-visible,
   a:focus-visible,
@@ -95,7 +177,8 @@ const {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
   }
-  /* Hide scrollbar completely but keep functionality - Brave/Chromium fix */
+
+  /* ✅ Hide scrollbar optimizado */
   html::-webkit-scrollbar,
   body::-webkit-scrollbar {
     width: 0px;
@@ -115,12 +198,11 @@ const {
   
   html,
   body {
-    -ms-overflow-style: none; /* IE y Edge */
-    scrollbar-width: none; /* Firefox */
-    overflow-x: hidden; /* Prevent horizontal scroll */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow-x: hidden;
   }
   
-  /* También aplicar a cualquier elemento con scroll */
   .hide-scrollbar::-webkit-scrollbar {
     width: 0px;
     height: 0px;
@@ -136,11 +218,11 @@ const {
   }
   
   .hide-scrollbar {
-    -ms-overflow-style: none; /* IE y Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
-  /* Responsive sidebar positioning */
+  /* ✅ Responsive sidebar */
   @media (max-width: 1023px) {
     .sidebar {
       position: fixed;
@@ -157,7 +239,6 @@ const {
       transform: translateX(0);
     }
     
-    /* Overlay for mobile */
     .sidebar:not([aria-hidden="true"])::before {
       content: '';
       position: fixed;
@@ -179,5 +260,30 @@ const {
       height: 100vh;
       width: 16rem;
     }
+  }
+
+  /* ✅ View Transitions optimizations */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* ✅ ANTI-PARPADEO: Prevenir FOUC durante transiciones */
+  [data-astro-transition] {
+    animation-fill-mode: both;
+  }
+
+  /* ✅ View transition root debe mantener tema */
+  ::view-transition-group(root) {
+    animation-duration: 0.2s;
+  }
+
+  /* ✅ Asegurar que elementos con transition names mantengan styling */
+  [transition\:name] {
+    backface-visibility: hidden;
+    transform: translateZ(0);
   }
 </style>

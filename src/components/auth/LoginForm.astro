@@ -1,5 +1,5 @@
 ---
-// LoginForm.astro - CORREGIDO sin notificaciones visuales
+// LoginForm.astro - OPTIMIZADO con View Transitions nativas
 import { actions } from 'astro:actions';
 
 // Get any action result from the current request
@@ -13,34 +13,34 @@ const message = searchParams.get('message');
 const redirectUrl = searchParams.get('redirect') || '/dashboard';
 ---
 
-<div class="card w-full" transition:name="login-card">
-  <header>
+<!-- ✅ Login card con transition name único -->
+<div class="card w-full" transition:name="auth-main-card">
+  <header transition:name="auth-header">
     <h2>Sign in to your account</h2>
     <p>Enter your credentials to access your account</p>
   </header>
 
-  <!-- Display only URL-based messages (not action errors) -->
+  <!-- ✅ Messages con transition names -->
   {message === 'logged-out' && (
-    <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 mb-4 text-sm" transition:name="message-banner">
+    <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 mb-4 text-sm" transition:name="success-message">
       You have been successfully signed out.
     </div>
   )}
 
   {message === 'account-created' && (
-    <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-3 mb-4 text-sm" transition:name="message-banner">
+    <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-3 mb-4 text-sm" transition:name="info-message">
       Account created successfully! Please sign in with your credentials.
     </div>
   )}
 
   {message === 'session-error' && (
-    <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3 mb-4 text-sm" transition:name="message-banner">
+    <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3 mb-4 text-sm" transition:name="warning-message">
       Your session has expired. Please sign in again.
     </div>
   )}
 
-  <!-- NO mostrar errores de acción aquí -->
-
-  <section transition:name="login-form">
+  <!-- ✅ Form section con transition name -->
+  <section transition:name="auth-form-section">
     <form method="POST" action={actions.login} class="form grid gap-6" id="login-form">
       <div class="grid gap-2">
         <label for="email">Email address</label>
@@ -81,7 +81,8 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
       <!-- Hidden redirect field -->
       <input type="hidden" name="redirect_to" value={redirectUrl} />
 
-      <button type="submit" class="btn w-full" id="login-btn" transition:name="submit-button">
+      <!-- ✅ Submit button con transition name -->
+      <button type="submit" class="btn w-full" id="login-btn" transition:name="auth-submit-button">
         <span class="btn-text">Sign in</span>
         <div class="btn-spinner hidden">
           <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -90,7 +91,8 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
     </form>
   </section>
 
-  <footer class="mt-6 text-center">
+  <!-- ✅ Footer con transition name -->
+  <footer class="mt-6 text-center" transition:name="auth-footer">
     <p class="text-sm text-muted-foreground">
       Don't have an account? 
       <a href="/auth/register" class="text-primary hover:underline font-medium">
@@ -111,26 +113,24 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
     readonly elements: LoginFormElements;
   }
 
-  // Handle form submission and response
   const loginForm = document.getElementById('login-form') as LoginForm;
   const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
   const btnText = loginBtn.querySelector('.btn-text');
   const btnSpinner = loginBtn.querySelector('.btn-spinner');
   
   if (loginForm) {
-    // Handle form submission - SOLO mostrar spinner en click
+    // ✅ Handle form submission - Solo loading state
     loginForm.addEventListener('submit', (e) => {
       console.log('🔐 Form submitted, showing loading state...');
       
-      // Show loading state SOLO cuando se hace submit
+      // Solo mostrar loading state en botón
       loginBtn.disabled = true;
       btnText?.classList.add('hidden');
       btnSpinner?.classList.remove('hidden');
     });
 
-    // Check if we have successful action result after page reload
+    // ✅ Check for successful action result
     window.addEventListener('DOMContentLoaded', () => {
-      // Check for success result
       const hasSuccess = document.querySelector('[data-login-success]');
       
       if (hasSuccess) {
@@ -138,22 +138,20 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
         console.log('✅ Login successful, redirecting to:', redirectTo);
         
         if (redirectTo) {
-          // Use View Transitions API for smooth navigation
+          // ✅ Usar View Transitions API para navegación suave
           if ('startViewTransition' in document) {
             (document as any).startViewTransition(() => {
               window.location.href = redirectTo;
             });
           } else {
-            // Fallback for browsers without View Transitions
-            setTimeout(() => {
-              window.location.href = redirectTo;
-            }, 800);
+            // Fallback sin delay innecesario
+            window.location.href = redirectTo;
           }
         }
       }
     });
 
-    // Handle URL search params for direct success messages
+    // ✅ Handle URL success params
     const urlParams = new URLSearchParams(window.location.search);
     const loginStatus = urlParams.get('login');
 
@@ -165,9 +163,7 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
           window.location.href = redirectTo;
         });
       } else {
-        setTimeout(() => {
-          window.location.href = redirectTo;
-        }, 1000);
+        window.location.href = redirectTo;
       }
     }
   }
@@ -180,7 +176,7 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
     }
   }
 
-  // Clear form on back navigation to prevent cached values
+  // Clear form on back navigation
   window.addEventListener('pageshow', function(event) {
     if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
       loginForm?.reset();
@@ -198,6 +194,7 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
 </script>
 
 <style>
+  /* ✅ Solo estilos básicos - Las View Transitions manejan las animaciones */
   .btn-spinner {
     display: flex;
     align-items: center;
@@ -209,12 +206,7 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
     cursor: not-allowed;
   }
 
-  /* View Transitions styling */
-  [transition\:name] {
-    view-transition-name: var(--transition-name);
-  }
-
-  /* Smooth animations for form interactions */
+  /* ✅ Hover suave sin conflictos con View Transitions */
   .input:focus {
     transform: scale(1.01);
     transition: transform 0.2s ease;
@@ -224,9 +216,17 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
     transform: translateY(-1px);
     transition: transform 0.2s ease;
   }
+
+  /* ✅ Focus styles para accesibilidad */
+  button:focus-visible,
+  input:focus-visible,
+  a:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
 </style>
 
-<!-- Hidden element to pass success data to JavaScript -->
+<!-- ✅ Hidden element para pasar data a JavaScript -->
 {success && data && (
   <div 
     data-login-success 

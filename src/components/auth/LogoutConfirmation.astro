@@ -1,5 +1,5 @@
 ---
-// LogoutConfirmation.astro - CON ANIMACIÓN RECUPERADA SIN ERRORES
+// LogoutConfirmation.astro - SOLO VIEW TRANSITIONS NATIVAS
 import { actions } from 'astro:actions';
 
 // Obtener resultado de la action
@@ -25,9 +25,10 @@ if (errorParam) {
 }
 ---
 
-<!-- Container para evitar saltos de layout -->
-<div class="card-container">
-  <div class="card w-full text-center" id="logout-card">
+<!-- ✅ View Transitions container -->
+<div class="logout-container">
+  <!-- ✅ Logout card with transition name -->
+  <div class="card w-full text-center" id="logout-card" transition:name="logout-main-card">
     <header>
       <div class="flex justify-center mb-4">
         <div class="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
@@ -42,7 +43,7 @@ if (errorParam) {
 
     <section class="my-6">
       <!-- User info card -->
-      <div class="bg-muted/50 rounded-lg p-4 mb-6">
+      <div class="bg-muted/50 rounded-lg p-4 mb-6" transition:name="user-info-card">
         <div class="flex items-center justify-center gap-3">
           <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold">
             {user ? (user.first_name.charAt(0) + user.last_name.charAt(0)) : 'U'}
@@ -100,12 +101,12 @@ if (errorParam) {
     </footer>
   </div>
 
-  <!-- Loading overlay (initially hidden) - MISMA POSICIÓN ABSOLUTA -->
-  <div class="card w-full text-center hidden" id="loading-overlay">
-    <div class="flex flex-col items-center gap-4 py-8" style="padding-top: 4rem; padding-bottom: 4rem;">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      <p class="text-muted-foreground">Signing you out...</p>
-      <p class="text-xs text-muted-foreground">This will only take a moment...</p>
+  <!-- ✅ Loading state - También con transition name -->
+  <div class="card w-full text-center hidden" id="loading-overlay" transition:name="logout-loading-card">
+    <div class="flex flex-col items-center gap-4 py-16">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p class="text-lg text-muted-foreground">Signing you out...</p>
+      <p class="text-sm text-muted-foreground">This will only take a moment...</p>
     </div>
   </div>
 </div>
@@ -125,54 +126,34 @@ if (errorParam) {
   const logoutCard = document.getElementById('logout-card');
   const successFlag = document.getElementById('logout-success-flag');
 
-  // Handle successful logout - JavaScript redirect only
+  // ✅ Handle successful logout - Solo redirección JavaScript
   if (successFlag) {
     const redirectUrl = successFlag.getAttribute('data-redirect') || '/auth/login';
     console.log('✅ Logout successful, redirecting to:', redirectUrl);
     
-    // Show loading overlay immediately
-    logoutCard?.classList.add('hidden');
-    loadingOverlay?.classList.remove('hidden');
-    
-    // Redirect after showing loading animation
-    setTimeout(() => {
-      if ('startViewTransition' in document) {
-        (document as any).startViewTransition(() => {
-          window.location.href = redirectUrl;
-        });
-      } else {
+    // ✅ Usar View Transitions API para navegación suave
+    if ('startViewTransition' in document) {
+      (document as any).startViewTransition(() => {
         window.location.href = redirectUrl;
-      }
-    }, 1500);
+      });
+    } else {
+      // Fallback para navegadores sin View Transitions
+      window.location.href = redirectUrl;
+    }
   }
 
-  // Log errors to console instead of showing them
-  const urlParams = new URLSearchParams(window.location.search);
-  const errorParam = urlParams.get('error');
-  if (errorParam) {
-    console.error('❌ Error parameter found:', errorParam);
-  }
-
-  // Handle cancel button
+  // ✅ Handle cancel button - También con View Transitions
   function handleCancel() {
     console.log('🔙 User cancelled logout');
     const referrer = document.referrer;
-    if (referrer && !referrer.includes('/logout')) {
-      if ('startViewTransition' in document) {
-        (document as any).startViewTransition(() => {
-          window.location.href = referrer;
-        });
-      } else {
-        window.location.href = referrer;
-      }
+    const fallbackUrl = referrer && !referrer.includes('/logout') ? referrer : '/dashboard';
+    
+    if ('startViewTransition' in document) {
+      (document as any).startViewTransition(() => {
+        window.location.href = fallbackUrl;
+      });
     } else {
-      if ('startViewTransition' in document) {
-        (document as any).startViewTransition(() => {
-          window.location.href = '/dashboard';
-        });
-      } else {
-        window.location.href = '/dashboard';
-      }
+      window.location.href = fallbackUrl;
     }
   }
 
@@ -181,37 +162,27 @@ if (errorParam) {
     cancelBtn.addEventListener('click', handleCancel);
   }
   
-  // Handle logout form submission - ANIMACIÓN SIN PARPADEO
+  // ✅ Handle logout form submission - Sin transiciones CSS manuales
   if (logoutForm) {
     logoutForm.addEventListener('submit', (e) => {
       console.log('🚪 Logout form submitted');
       
-      // Show button loading state immediately
+      // Solo mostrar spinner en botón
       logoutBtn.disabled = true;
       btnText?.classList.add('hidden');
       btnSpinner?.classList.remove('hidden');
       
-      // Animación suave sin parpadeo
+      // ✅ Simple toggle sin animaciones CSS conflictivas
       setTimeout(() => {
-        console.log('🔄 Starting smooth transition...');
-        
-        // Fade out del card original
-        logoutCard?.classList.add('fade-out');
-        
-        // Después de que termine el fade out, mostrar loading
-        setTimeout(() => {
-          logoutCard?.classList.add('hidden');
-          loadingOverlay?.classList.remove('hidden');
-          loadingOverlay?.classList.add('fade-in');
-        }, 300); // Espera a que termine la transición de fade-out
-        
-      }, 400); // Delay ligeramente más corto para mejor UX
+        logoutCard?.classList.add('hidden');
+        loadingOverlay?.classList.remove('hidden');
+      }, 300);
       
-      // Fallback: if no redirect happens in 10 seconds, force redirect
+      // Fallback: force redirect after timeout
       setTimeout(() => {
         console.log('⚠️ Logout taking too long, forcing redirect...');
         window.location.href = '/auth/login?message=logged-out';
-      }, 10000);
+      }, 8000);
     });
   }
   
@@ -233,6 +204,7 @@ if (errorParam) {
 </script>
 
 <style>
+  /* ✅ Solo estilos básicos - NO transiciones CSS manuales */
   .btn-spinner {
     display: flex;
     align-items: center;
@@ -244,63 +216,26 @@ if (errorParam) {
     cursor: not-allowed;
   }
 
-  /* View Transitions support */
-  #logout-card {
-    view-transition-name: logout-card;
-  }
-
-  #loading-overlay {
-    view-transition-name: loading-overlay;
-  }
-
-  /* Smooth animations */
+  /* ✅ Hover suave sin conflictos */
   .btn:hover:not(:disabled) {
     transform: translateY(-1px);
     transition: transform 0.2s ease;
   }
 
-  /* SOLUCIÓN ANTI-PARPADEO: Ambos cards ocupan el mismo espacio */
-  .card-container {
-    position: relative;
-    min-height: 400px; /* Altura mínima para evitar saltos */
-  }
-
-  #logout-card, #loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
+  /* ✅ Container estable - sin posicionamiento absoluto */
+  .logout-container {
     width: 100%;
-    transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-                transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    transform: translateZ(0); /* Fuerza aceleración por hardware */
-    backface-visibility: hidden; /* Evita parpadeos en navegadores */
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
 
-  /* Estado visible */
-  #logout-card:not(.hidden), #loading-overlay:not(.hidden) {
-    opacity: 1;
-    transform: translateZ(0) scale(1);
-    z-index: 1;
-  }
-
-  /* Estado oculto */
+  /* ✅ Estados simples sin transiciones conflictivas */
   .hidden {
-    opacity: 0;
-    transform: translateZ(0) scale(0.98);
-    pointer-events: none;
-    z-index: 0;
+    display: none !important;
   }
 
-  /* Animación de fade más suave */
-  .fade-out {
-    opacity: 0;
-    transform: translateZ(0) scale(0.98);
-    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
-  }
-
-  .fade-in {
-    opacity: 1;
-    transform: translateZ(0) scale(1);
-    transition: opacity 0.3s ease-in, transform 0.3s ease-in;
-  }
+  /* ✅ Las View Transitions de Astro manejan todo automáticamente */
 </style>

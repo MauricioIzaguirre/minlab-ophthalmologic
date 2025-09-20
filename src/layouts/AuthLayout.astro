@@ -1,6 +1,7 @@
 ---
 import "../styles/global.css";
 import ThemeSwitcher from "../components/ui/themeSwitcher.astro";
+import { ClientRouter } from "astro:transitions";
 
 export interface Props {
   title?: string;
@@ -22,41 +23,126 @@ const {
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="generator" content={Astro.generator} />
     <title>{title}</title>
+    
+    <!-- ✅ SOLUCIÓN ANTI-PARPADEO: Script ANTES de ClientRouter (MISMO QUE BaseLayout) -->
+    <script is:inline>
+      (() => {
+        // ✅ Función para aplicar tema inmediatamente
+        function applyTheme() {
+          try {
+            const stored = localStorage.getItem('themeMode');
+            const prefersDark = matchMedia('(prefers-color-scheme: dark)').matches;
+            const shouldBeDark = stored ? stored === 'dark' : prefersDark;
+            
+            // ✅ CRÍTICO: Aplicar clase ANTES de cualquier renderizado
+            document.documentElement.classList.toggle('dark', shouldBeDark);
+            
+            // ✅ También aplicar al body para compatibilidad con Basecoat
+            if (document.body) {
+              document.body.classList.toggle('dark', shouldBeDark);
+            }
+            
+            return shouldBeDark;
+          } catch (e) {
+            console.warn('Theme detection failed:', e);
+            return false;
+          }
+        }
+
+        // ✅ APLICAR INMEDIATAMENTE
+        const isDark = applyTheme();
+        
+        // ✅ Función para cambio de tema
+        const changeTheme = (dark) => {
+          document.documentElement.classList.toggle('dark', dark);
+          if (document.body) {
+            document.body.classList.toggle('dark', dark);
+          }
+          try { 
+            localStorage.setItem('themeMode', dark ? 'dark' : 'light'); 
+          } catch (e) {
+            console.warn('Failed to save theme preference:', e);
+          }
+        };
+
+        // ✅ Event listener para basecoat
+        document.addEventListener('basecoat:theme', (event) => {
+          const mode = event.detail?.mode;
+          const newDark = mode === 'dark' ? true
+                         : mode === 'light' ? false
+                         : !document.documentElement.classList.contains('dark');
+          changeTheme(newDark);
+        });
+
+        // ✅ CRÍTICO: Preservar tema durante View Transitions
+        document.addEventListener('astro:before-swap', (event) => {
+          const currentDark = document.documentElement.classList.contains('dark');
+          
+          // ✅ Aplicar tema al nuevo documento INMEDIATAMENTE
+          event.newDocument.documentElement.classList.toggle('dark', currentDark);
+          
+          // ✅ También aplicar al body del nuevo documento
+          if (event.newDocument.body) {
+            event.newDocument.body.classList.toggle('dark', currentDark);
+          }
+          
+          console.log(`🎨 Auth Theme preserved during transition: ${currentDark ? 'dark' : 'light'}`);
+        });
+
+        // ✅ Reforzar tema después del swap
+        document.addEventListener('astro:after-swap', () => {
+          // Re-aplicar tema por si acaso
+          applyTheme();
+          
+          // ✅ Re-inicializar Basecoat si es necesario
+          if (window.basecoat && typeof window.basecoat.init === 'function') {
+            try {
+              window.basecoat.init();
+            } catch (e) {
+              console.warn('Basecoat re-initialization failed:', e);
+            }
+          }
+        });
+
+        // ✅ Page load handler
+        document.addEventListener('astro:page-load', () => {
+          console.log('🔐 Auth page loaded with View Transitions');
+          applyTheme(); // Reforzar tema
+          
+          // Re-enfocar campos si es necesario después de navegación
+          const emailField = document.getElementById('email');
+          const firstNameField = document.getElementById('first_name');
+          
+          if (emailField && !emailField.value) {
+            setTimeout(() => emailField.focus(), 100);
+          } else if (firstNameField && !firstNameField.value) {
+            setTimeout(() => firstNameField.focus(), 100);
+          }
+        });
+
+        console.log(`🎨 Auth Initial theme applied: ${isDark ? 'dark' : 'light'}`);
+      })();
+    </script>
+    
+    <!-- ✅ ClientRouter DESPUÉS del script de tema -->
+    <ClientRouter />
+    
     <!-- Preload critical resources -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <script>
-      (() => {
-        try {
-          const stored = localStorage.getItem('themeMode');
-          if (stored ? stored === 'dark'
-                      : matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-          }
-        } catch (_) {}
-
-        const apply = (dark: boolean) => {
-          document.documentElement.classList.toggle('dark', dark);
-          try { localStorage.setItem('themeMode', dark ? 'dark' : 'light'); } catch (_) {}
-        };
-
-        document.addEventListener('basecoat:theme', (event) => {
-          const mode = (event as CustomEvent).detail?.mode;
-          apply(mode === 'dark' ? true
-                : mode === 'light' ? false
-                : !document.documentElement.classList.contains('dark'));
-        });
-      })();
-    </script>
+    
+    <!-- ✅ Basecoat scripts (mismos que BaseLayout) -->
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/basecoat.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/sidebar.min.js" defer></script>
   </head>
   
   <body class="min-h-screen bg-background font-sans antialiased bg-dotted-pattern hide-scrollbar">
-    <!-- Main Authentication Container -->
-    <div class="relative flex min-h-screen">
-      <!-- Left Side - Branding/Info (hidden on mobile) -->
-      <div class="hidden lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:px-12 xl:px-24 bg-card/50 backdrop-blur-sm">
+    <!-- ✅ Main Authentication Container con View Transitions -->
+    <div class="relative flex min-h-screen" transition:name="auth-container">
+      <!-- ✅ Left Side - Branding/Info con transition name -->
+      <div class="hidden lg:flex lg:w-1/2 lg:flex-col lg:justify-center lg:px-12 xl:px-24 bg-card/50 backdrop-blur-sm" transition:name="auth-branding">
         <div class="mx-auto max-w-md">
-          <div class="mb-8">
+          <div class="mb-8" transition:name="auth-logo">
             <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary">
               <svg class="h-8 w-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -64,15 +150,15 @@ const {
             </div>
           </div>
           
-          <h1 class="text-3xl font-bold tracking-tight text-foreground">
+          <h1 class="text-3xl font-bold tracking-tight text-foreground" transition:name="auth-welcome-title">
             Welcome back
           </h1>
-          <p class="mt-4 text-lg text-muted-foreground">
+          <p class="mt-4 text-lg text-muted-foreground" transition:name="auth-welcome-text">
             Sign in to your account and continue where you left off. Your productivity is waiting for you.
           </p>
           
-          <!-- Feature List -->
-          <div class="mt-8 space-y-4">
+          <!-- ✅ Feature List con transition name -->
+          <div class="mt-8 space-y-4" transition:name="auth-features">
             <div class="flex items-center gap-3">
               <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
                 <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,11 +187,11 @@ const {
         </div>
       </div>
       
-      <!-- Right Side - Authentication Form -->
-      <div class="flex w-full lg:w-1/2 flex-col justify-center px-6 py-12 sm:px-12 lg:px-24 min-h-screen hide-scrollbar overflow-y-auto">
+      <!-- ✅ Right Side - Authentication Form con transition name -->
+      <div class="flex w-full lg:w-1/2 flex-col justify-center px-6 py-12 sm:px-12 lg:px-24 min-h-screen hide-scrollbar overflow-y-auto" transition:name="auth-form-container">
         <div class="mx-auto w-full max-w-md">
-          <!-- Mobile Logo -->
-          <div class="lg:hidden mb-8 text-center">
+          <!-- ✅ Mobile Logo con transition name -->
+          <div class="lg:hidden mb-8 text-center" transition:name="mobile-auth-logo">
             <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary mx-auto mb-4">
               <svg class="h-8 w-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
@@ -113,11 +199,11 @@ const {
             </div>
           </div>
           
-          <!-- Authentication Form Slot -->
+          <!-- ✅ Authentication Form Slot - Los componentes de form tienen sus propios transition names -->
           <slot />
           
-          <!-- Footer Links -->
-          <div class="mt-8 text-center">
+          <!-- ✅ Footer Links con transition name -->
+          <div class="mt-8 text-center" transition:name="auth-legal-footer">
             <p class="text-xs text-muted-foreground">
               By continuing, you agree to our 
               <a href="/legal/terms" class="underline underline-offset-4 hover:text-primary">Terms of Service</a>
@@ -129,25 +215,69 @@ const {
       </div>
     </div>
     
-    <!-- Theme Toggle Button Component -->
-    <ThemeSwitcher />
+    <!-- ✅ Theme Toggle Button Component con transition name -->
+    <div transition:name="theme-switcher">
+      <ThemeSwitcher />
+    </div>
+
+    <!-- ✅ Scripts adicionales para reset de formularios -->
+    <script>
+      // ✅ Limpiar formularios en navegación hacia atrás
+      document.addEventListener('astro:after-swap', () => {
+        // Reset form states if needed
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+          const submitBtn = form.querySelector('[type="submit"]') as HTMLButtonElement;
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+            if (btnText) btnText.classList.remove('hidden');
+            if (btnSpinner) btnSpinner.classList.add('hidden');
+          }
+        });
+      });
+    </script>
   </body>
 </html>
 
 <style>
-  /* Dotted background pattern that adapts to content height */
+  /* ✅ CRÍTICO: CSS Variables con !important para prevenir parpadeos (IGUAL QUE BaseLayout) */
+  :root {
+    --theme-transition: none !important; /* Disable CSS transitions during theme switch */
+  }
+
+  /* ✅ Transiciones suaves solo para elementos específicos */
+  html {
+    /* NO transition en background para evitar flickers */
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  /* ✅ Pattern de fondo específico para auth */
   .bg-dotted-pattern {
     background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.25) 1px, transparent 0);
     background-size: 16px 16px;
-    background-attachment: local; /* Key: makes background scroll with content */
+    background-attachment: local;
   }
   
-  /* Dark theme variation */
   html.dark .bg-dotted-pattern {
     background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0);
   }
   
-  /* Hide scrollbar completely but keep functionality */
+  /* ✅ Focus styles para accesibilidad */
+  button:focus-visible,
+  input:focus-visible,
+  a:focus-visible,
+  select:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* ✅ Hide scrollbar optimizado (IGUAL QUE BaseLayout) */
   html::-webkit-scrollbar,
   body::-webkit-scrollbar {
     width: 0px;
@@ -167,12 +297,11 @@ const {
   
   html,
   body {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
-    overflow-x: hidden; /* Prevent horizontal scroll */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    overflow-x: hidden;
   }
   
-  /* Apply to any scrollable elements */
   .hide-scrollbar::-webkit-scrollbar {
     width: 0px;
     height: 0px;
@@ -188,20 +317,43 @@ const {
   }
   
   .hide-scrollbar {
-    -ms-overflow-style: none; /* IE and Edge */
-    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
-  
-  /* Smooth transitions */
-  html {
-    transition: background-color 0.2s ease, color 0.2s ease;
+
+  /* ✅ View Transitions optimizations (IGUAL QUE BaseLayout) */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
-  
-  /* Focus styles for accessibility */
-  button:focus-visible,
-  input:focus-visible,
-  a:focus-visible {
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
+
+  /* ✅ ANTI-PARPADEO: Prevenir FOUC durante transiciones */
+  [data-astro-transition] {
+    animation-fill-mode: both;
+  }
+
+  /* ✅ View transition root debe mantener tema */
+  ::view-transition-group(root) {
+    animation-duration: 0.2s;
+  }
+
+  /* ✅ Asegurar que elementos con transition names mantengan styling */
+  [transition\:name] {
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  /* ✅ Hover effects que no conflictúan con View Transitions */
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+  }
+
+  .input:focus {
+    transform: scale(1.01);
+    transition: transform 0.2s ease;
   }
 </style>
