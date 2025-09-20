@@ -102,7 +102,7 @@ function getAuthErrorMessage(error: unknown): string {
 }
 
 export const server = {
-  // Registrar usuario - Mejorado con redirección
+  // Registrar usuario
   register: defineAction({
     accept: 'form',
     input: registerSchema,
@@ -131,8 +131,6 @@ export const server = {
         // Guardar en sesión
         await context.session?.set('user', sessionUser);
 
-        // Las Actions no pueden hacer redirecciones del servidor
-        // Devolver datos para redirección del cliente
         return { 
           success: true, 
           message: 'Usuario registrado exitosamente',
@@ -156,7 +154,7 @@ export const server = {
     },
   }),
 
-  // Iniciar sesión - CORREGIDO con manejo de redirección
+  // Iniciar sesión
   login: defineAction({
     accept: 'form',
     input: loginSchema,
@@ -188,8 +186,6 @@ export const server = {
         // Determinar URL de redirección
         const redirectUrl = input.redirect_to || '/dashboard';
 
-        // Las Actions no pueden hacer redirecciones del servidor
-        // Devolver datos para redirección del cliente
         return { 
           success: true, 
           message: 'Sesión iniciada exitosamente',
@@ -216,7 +212,7 @@ export const server = {
     },
   }),
 
-  // Cerrar sesión - Mejorado con redirección
+  // CORRECTED: Logout action with proper definition for getActionResult()
   logout: defineAction({
     handler: async (_input, context) => {
       try {
@@ -240,8 +236,7 @@ export const server = {
         
         console.log('✅ Local session destroyed');
 
-        // Las Actions no pueden hacer redirecciones del servidor
-        // Devolver datos para redirección del cliente
+        // Return simple success object that's compatible with getActionResult()
         return { 
           success: true, 
           message: 'Sesión cerrada exitosamente',
@@ -266,7 +261,7 @@ export const server = {
     },
   }),
 
-  // Recuperar contraseña - Mejorado
+  // Recuperar contraseña
   recoverPassword: defineAction({
     accept: 'form',
     input: recoverPasswordSchema,
@@ -297,7 +292,7 @@ export const server = {
     },
   }),
 
-  // Actualizar contraseña - Mejorado
+  // Actualizar contraseña
   updatePassword: defineAction({
     accept: 'form',
     input: updatePasswordSchema,
@@ -338,7 +333,7 @@ export const server = {
     },
   }),
 
-  // Actualizar metadata de usuario - Mejorado con toast
+  // Actualizar metadata de usuario
   updateUserMetadata: defineAction({
     accept: 'form',
     input: updateUserMetadataSchema,
@@ -394,7 +389,7 @@ export const server = {
     },
   }),
 
-  // Actualizar perfil completo - Mejorado con toast
+  // Actualizar perfil completo
   updateCompleteProfile: defineAction({
     accept: 'form',
     input: updateCompleteProfileSchema,
@@ -432,7 +427,7 @@ export const server = {
     },
   }),
 
-  // Obtener perfil del usuario actual - Con mejor manejo de errores
+  // Obtener perfil del usuario actual
   getCurrentUserProfile: defineAction({
     handler: async (_input, context) => {
       const sessionUser = await context.session?.get('user') as SessionUser | undefined;
@@ -463,7 +458,7 @@ export const server = {
     },
   }),
 
-  // Obtener permisos del usuario actual - Con mejor manejo de errores
+  // Obtener permisos del usuario actual
   getUserPermissions: defineAction({
     handler: async (_input, context) => {
       const sessionUser = await context.session?.get('user') as SessionUser | undefined;

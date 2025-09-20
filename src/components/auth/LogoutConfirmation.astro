@@ -1,12 +1,12 @@
 ---
-// LogoutConfirmation.astro - Functional Logout Component
+// LogoutConfirmation.astro - FINAL CORRECTED VERSION
 import { actions } from 'astro:actions';
 
-// Get any action result from the current request
-const formData = await Astro.request.formData();
-const error = formData.get('error') ? JSON.parse(String(formData.get('error'))) : null;
-const data = formData.get('data');
-const success = data && typeof data === 'object' && 'success' in data ? (data as { success: boolean }).success : false;
+// Get any action result from the current request - CORRECTED: Remove TypeScript assertion
+const result = Astro.getActionResult(actions.logout);
+const error = result?.error;
+const data = result?.data;
+const success = data?.success;
 
 // Get user info from locals (set by middleware)
 const user = Astro.locals.user;
@@ -82,8 +82,8 @@ const user = Astro.locals.user;
         Cancel
       </button>
       
-      <!-- Logout form -->
-      <form method="POST" action={actions.logout} class="flex-1">
+      <!-- CORRECTED: Direct action reference without toString() -->
+      <form method="POST" action={actions.logout} class="flex-1" id="logout-form">
         <button type="submit" class="btn w-full bg-destructive text-destructive-foreground hover:bg-destructive/90" id="logout-btn">
           Sign out
         </button>
@@ -105,14 +105,7 @@ const user = Astro.locals.user;
 </div>
 
 <script>
-  // Add type declaration for global functions
-  declare global {
-    interface Window {
-      handleCancel: () => void;
-    }
-  }
-
-  const logoutForm = document.querySelector('form[action*="logout"]') as HTMLFormElement;
+  const logoutForm = document.getElementById('logout-form') as HTMLFormElement;
   const logoutBtn = document.getElementById('logout-btn') as HTMLButtonElement;
   const cancelBtn = document.getElementById('cancel-btn') as HTMLButtonElement;
   const loadingOverlay = document.getElementById('loading-overlay');

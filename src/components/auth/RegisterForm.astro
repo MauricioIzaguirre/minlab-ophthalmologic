@@ -1,12 +1,12 @@
 ---
-// RegisterForm.astro - Corregido SIN redirección del servidor para evitar ResponseSentError
+// RegisterForm.astro - FIXED: TypeScript errors resolved
 import { actions } from 'astro:actions';
 
-// Get any action result from the current request
+// Get any action result from the current request - FIXED: Proper type handling
 const result = Astro.getActionResult(actions.register);
 const error = result?.error;
-const success = result?.data?.success;
 const data = result?.data;
+const success = data?.success;
 
 // IMPORTANTE: NO hacer Astro.redirect() aquí porque causa ResponseSentError
 // La redirección se maneja completamente en el frontend
@@ -26,7 +26,8 @@ const data = result?.data;
   )}
 
   <section>
-    <form method="POST" action={actions.register} class="form grid gap-6" id="register-form">
+    <!-- FIXED: Use action.toString() for form action -->
+    <form method="POST" action={actions.register.toString()} class="form grid gap-6" id="register-form">
       <div class="grid grid-cols-2 gap-4">
         <div class="grid gap-2">
           <label for="first_name">First name</label>
@@ -294,9 +295,6 @@ const data = result?.data;
       btnSpinner?.classList.remove('hidden');
     });
 
-    // Handle form response
-    registerForm.addEventListener('htmx:afterRequest', handleFormResponse);
-    
     // Check if we have action result in the page
     const hasActionResult = document.querySelector('[data-action-result]');
     if (hasActionResult) {
@@ -313,33 +311,6 @@ const data = result?.data;
         showToast(resultMessage, 'error');
         resetForm();
       }
-    }
-  }
-
-  function handleFormResponse(event: any) {
-    const xhr = event.detail.xhr;
-    resetForm();
-    
-    if (xhr.status >= 200 && xhr.status < 300) {
-      // Success - check response for redirect info
-      try {
-        const response = JSON.parse(xhr.responseText);
-        if (response.success) {
-          showToast('Account created successfully! Redirecting...', 'success');
-          setTimeout(() => {
-            window.location.href = response.redirect || '/dashboard';
-          }, 2000);
-        }
-      } catch (e) {
-        // Fallback if response isn't JSON
-        showToast('Account created successfully! Redirecting...', 'success');
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 2000);
-      }
-    } else {
-      // Error
-      showToast('Registration failed. Please check your information and try again.', 'error');
     }
   }
 
@@ -382,12 +353,12 @@ const data = result?.data;
   }
 </style>
 
-<!-- Hidden element to pass action result data to JavaScript -->
-{success && (
+<!-- FIXED: Hidden element with proper message access -->
+{success && data && (
   <div 
     data-action-result 
     data-result-type="success" 
-    data-result-message={data?.message}
+    data-result-message={'Registration successful'}
     style="display: none;"
   ></div>
 )}
