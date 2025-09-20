@@ -212,54 +212,56 @@ export const server = {
     },
   }),
 
-  // CORRECTED: Logout action with proper definition for getActionResult()
-  logout: defineAction({
-    handler: async (_input, context) => {
-      try {
-        console.log('🚪 Starting logout process');
-        
-        const sessionUser = await context.session?.get('user') as SessionUser | undefined;
-        
-        if (sessionUser) {
-          try {
-            // Cerrar sesión en Supabase
-            await authService.logout(sessionUser.access_token);
-            console.log('✅ Supabase logout successful');
-          } catch (supabaseError) {
-            // Log el error pero continua con el logout local
-            console.warn('⚠️ Supabase logout failed, continuing with local logout:', supabaseError);
-          }
-        }
-
-        // Destruir sesión local siempre
-        await context.session?.destroy();
-        
-        console.log('✅ Local session destroyed');
-
-        // Return simple success object that's compatible with getActionResult()
-        return { 
-          success: true, 
-          message: 'Sesión cerrada exitosamente',
-          redirect: '/auth/login?message=logged-out',
-          shouldRedirect: true
-        };
-      } catch (error) {
-        console.error('❌ Logout error:', error);
-        
-        // Asegurar limpieza de sesión aunque falle
+  // Logout action corregida para Astro 5.x
+// CORREGIDO: Logout action - Las Actions NO pueden usar redirect() directamente
+logout: defineAction({
+  handler: async (_input, context) => {
+    try {
+      console.log('🚪 Starting logout process');
+      
+      const sessionUser = await context.session?.get('user') as SessionUser | undefined;
+      
+      if (sessionUser) {
         try {
-          await context.session?.destroy();
-        } catch (destroyError) {
-          console.error('❌ Failed to destroy session:', destroyError);
+          // Cerrar sesión en Supabase
+          await authService.logout(sessionUser.access_token);
+          console.log('✅ Supabase logout successful');
+        } catch (supabaseError) {
+          // Log el error pero continua con el logout local
+          console.warn('⚠️ Supabase logout failed, continuing with local logout:', supabaseError);
         }
-        
-        throw new ActionError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Error al cerrar sesión. La sesión local ha sido limpiada.',
-        });
       }
-    },
-  }),
+
+      // Destruir sesión local siempre
+      await context.session?.destroy();
+      
+      console.log('✅ Local session destroyed');
+
+      // CORREGIDO: Devolver objeto con éxito - el redirect se maneja en el frontend
+      return { 
+        success: true, 
+        message: 'Sesión cerrada exitosamente',
+        redirect: '/auth/login?message=logged-out',
+        shouldRedirect: true
+      };
+      
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      
+      // Asegurar limpieza de sesión aunque falle
+      try {
+        await context.session?.destroy();
+      } catch (destroyError) {
+        console.error('❌ Failed to destroy session:', destroyError);
+      }
+      
+      throw new ActionError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Error al cerrar sesión. La sesión local ha sido limpiada.',
+      });
+    }
+  },
+}),
 
   // Recuperar contraseña
   recoverPassword: defineAction({
