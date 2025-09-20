@@ -212,9 +212,11 @@ export const server = {
     },
   }),
 
-  // Logout action corregida para Astro 5.x
-// CORREGIDO: Logout action - Las Actions NO pueden usar redirect() directamente
+// FIXED: Logout action - src/actions/index.ts (fragmento corregido)
+
+// Logout action corregida para Astro 5.x
 logout: defineAction({
+  accept: 'form', // ✅ CRÍTICO: Esto faltaba
   handler: async (_input, context) => {
     try {
       console.log('🚪 Starting logout process');
