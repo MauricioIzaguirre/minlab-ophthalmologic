@@ -1,3 +1,5 @@
+// src/lib/auth.ts - VERSIÓN COMPLETA CORREGIDA
+
 import type {
   RegisterRequest,
   LoginRequest,
@@ -39,13 +41,26 @@ class AuthService {
     return headers;
   }
 
+  // ✅ MANEJADOR DE RESPUESTAS MEJORADO
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Unknown error' }));
       throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
     }
 
-    return response.json();
+    // Manejar respuestas vacías (204 No Content)
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return { message: 'Success' } as T;
+    }
+
+    // Verificar si hay contenido JSON
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+
+    // Si no es JSON, devolver objeto genérico de éxito
+    return { message: 'Success' } as T;
   }
 
   // Registrar usuario
@@ -114,15 +129,34 @@ class AuthService {
     return this.handleResponse<{ message: string }>(response);
   }
 
-  // Cerrar sesión
+  // ✅ MÉTODO LOGOUT COMPLETAMENTE CORREGIDO
   async logout(token: string): Promise<{ message: string }> {
-    const response = await fetch(`${this.baseUrl}/auth/v1/logout`, {
-      method: 'POST',
-      headers: this.getHeaders(true, token),
-      body: JSON.stringify({}),
-    });
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/v1/logout`, {
+        method: 'POST',
+        headers: this.getHeaders(true, token),
+        body: JSON.stringify({}),
+      });
 
-    return this.handleResponse<{ message: string }>(response);
+      // Supabase típicamente devuelve 204 No Content para logout exitoso
+      if (response.status === 204) {
+        console.log('✅ Supabase logout successful (204 No Content)');
+        return { message: 'Logout successful' };
+      }
+
+      // Para otros códigos de éxito
+      if (response.ok) {
+        console.log(`✅ Supabase logout successful (${response.status})`);
+        return this.handleResponse<{ message: string }>(response);
+      }
+
+      // Si no es exitoso, lanzar error
+      throw new Error(`Logout failed with status ${response.status}`);
+
+    } catch (error) {
+      console.error('❌ Supabase logout error:', error);
+      throw error;
+    }
   }
 
   // Renovar token
