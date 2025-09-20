@@ -1,171 +1,167 @@
 ---
-// LoginForm.astro - OPTIMIZADO con View Transitions nativas
+// LoginForm.astro - CORREGIDO siguiendo el patrón exitoso del logout original
 import { actions } from 'astro:actions';
 
-// Get any action result from the current request
+// Get action result (solo para logs en consola)
 const result = Astro.getActionResult(actions.login);
 const success = result?.data?.success;
-const data = result?.data;
+const error = result?.error;
 
-// Check for URL params (logout message, etc.)
+// Log errors to console instead of showing to user
+if (error) {
+  console.error('❌ Login error:', error.message);
+}
+
+// Check for URL params
 const { searchParams } = new URL(Astro.request.url);
 const message = searchParams.get('message');
+const errorParam = searchParams.get('error');
 const redirectUrl = searchParams.get('redirect') || '/dashboard';
+
+// Log messages to console
+if (message) {
+  console.log(`📄 Login page message: ${message}`);
+}
+if (errorParam) {
+  console.error('❌ Login error from URL:', errorParam);
+}
 ---
 
-<!-- ✅ Login card con transition name único -->
-<div class="card w-full" transition:name="auth-main-card">
-  <header transition:name="auth-header">
-    <h2>Sign in to your account</h2>
-    <p>Enter your credentials to access your account</p>
-  </header>
+<!-- ✅ Login container -->
+<div class="login-container">
+  <!-- ✅ Login card con transition name -->
+  <div class="card w-full" id="login-card" transition:name="login-main-card">
+    <header transition:name="login-header">
+      <h2>Sign in to your account</h2>
+      <p>Enter your credentials to access your account</p>
+    </header>
 
-  <!-- ✅ Messages con transition names -->
-  {message === 'logged-out' && (
-    <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-3 mb-4 text-sm" transition:name="success-message">
-      You have been successfully signed out.
-    </div>
-  )}
-
-  {message === 'account-created' && (
-    <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-lg p-3 mb-4 text-sm" transition:name="info-message">
-      Account created successfully! Please sign in with your credentials.
-    </div>
-  )}
-
-  {message === 'session-error' && (
-    <div class="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-lg p-3 mb-4 text-sm" transition:name="warning-message">
-      Your session has expired. Please sign in again.
-    </div>
-  )}
-
-  <!-- ✅ Form section con transition name -->
-  <section transition:name="auth-form-section">
-    <form method="POST" action={actions.login} class="form grid gap-6" id="login-form">
-      <div class="grid gap-2">
-        <label for="email">Email address</label>
-        <input 
-          type="email" 
-          id="email" 
-          name="email"
-          required
-          class="input"
-          placeholder="Enter your email"
-          autocomplete="email"
-        />
-      </div>
-
-      <div class="grid gap-2">
-        <div class="flex items-center justify-between">
-          <label for="password">Password</label>
-          <a href="/auth/forgot-password" class="text-sm text-primary hover:underline">
-            Forgot password?
-          </a>
+    <section transition:name="login-form-section">
+      <form method="POST" action={actions.login} class="form grid gap-6" id="login-form">
+        <div class="grid gap-2">
+          <label for="email">Email address</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email"
+            required
+            class="input"
+            placeholder="Enter your email"
+            autocomplete="email"
+          />
         </div>
-        <input 
-          type="password" 
-          id="password" 
-          name="password"
-          required
-          class="input"
-          placeholder="Enter your password"
-          autocomplete="current-password"
-        />
-      </div>
 
-      <div class="flex items-center space-x-2">
-        <input type="checkbox" id="remember" name="remember" class="rounded">
-        <label for="remember" class="text-sm">Remember me</label>
-      </div>
-
-      <!-- Hidden redirect field -->
-      <input type="hidden" name="redirect_to" value={redirectUrl} />
-
-      <!-- ✅ Submit button con transition name -->
-      <button type="submit" class="btn w-full" id="login-btn" transition:name="auth-submit-button">
-        <span class="btn-text">Sign in</span>
-        <div class="btn-spinner hidden">
-          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        <div class="grid gap-2">
+          <div class="flex items-center justify-between">
+            <label for="password">Password</label>
+            <a href="/auth/forgot-password" class="text-sm text-primary hover:underline">
+              Forgot password?
+            </a>
+          </div>
+          <input 
+            type="password" 
+            id="password" 
+            name="password"
+            required
+            class="input"
+            placeholder="Enter your password"
+            autocomplete="current-password"
+          />
         </div>
-      </button>
-    </form>
-  </section>
 
-  <!-- ✅ Footer con transition name -->
-  <footer class="mt-6 text-center" transition:name="auth-footer">
-    <p class="text-sm text-muted-foreground">
-      Don't have an account? 
-      <a href="/auth/register" class="text-primary hover:underline font-medium">
-        Create one here
-      </a>
-    </p>
-  </footer>
+        <div class="flex items-center space-x-2">
+          <input type="checkbox" id="remember" name="remember" class="rounded">
+          <label for="remember" class="text-sm">Remember me</label>
+        </div>
+
+        <!-- Hidden redirect field -->
+        <input type="hidden" name="redirect_to" value={redirectUrl} />
+
+        <button type="submit" class="btn w-full" id="login-btn" transition:name="login-submit-button">
+          <span class="btn-text">Sign in</span>
+          <div class="btn-spinner hidden">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          </div>
+        </button>
+      </form>
+    </section>
+
+    <footer class="mt-6 text-center" transition:name="login-footer">
+      <p class="text-sm text-muted-foreground">
+        Don't have an account? 
+        <a href="/auth/register" class="text-primary hover:underline font-medium">
+          Create one here
+        </a>
+      </p>
+    </footer>
+  </div>
+
+  <!-- ✅ Loading state igual que tu logout original -->
+  <div class="card w-full text-center hidden" id="loading-overlay" transition:name="login-loading-card">
+    <div class="flex flex-col items-center gap-4 py-16">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p class="text-lg text-muted-foreground">Signing you in...</p>
+      <p class="text-sm text-muted-foreground">This will only take a moment...</p>
+    </div>
+  </div>
 </div>
 
+<!-- ✅ CORREGIDO: Hidden success flag usando redirectUrl (no redirect) -->
+{success && result?.data && (
+  <div 
+    id="login-success-flag" 
+    style="display: none;" 
+    data-redirect={result.data.redirectUrl}
+  ></div>
+)}
+
 <script>
-  interface LoginFormElements extends HTMLFormControlsCollection {
-    email: HTMLInputElement;
-    password: HTMLInputElement;
-    redirect_to: HTMLInputElement;
-  }
-
-  interface LoginForm extends HTMLFormElement {
-    readonly elements: LoginFormElements;
-  }
-
-  const loginForm = document.getElementById('login-form') as LoginForm;
+  const loginForm = document.getElementById('login-form') as HTMLFormElement;
   const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
   const btnText = loginBtn.querySelector('.btn-text');
   const btnSpinner = loginBtn.querySelector('.btn-spinner');
+  const loadingOverlay = document.getElementById('loading-overlay');
+  const loginCard = document.getElementById('login-card');
+  const successFlag = document.getElementById('login-success-flag');
+
+  // ✅ CORREGIDO: Handle successful login igual que tu logout original
+  if (successFlag) {
+    const redirectUrl = successFlag.getAttribute('data-redirect') || '/dashboard';
+    console.log('✅ Login successful, redirecting to:', redirectUrl);
+    
+    // ✅ EXACTAMENTE igual que tu logout original - View Transitions
+    if ('startViewTransition' in document) {
+      (document as any).startViewTransition(() => {
+        window.location.href = redirectUrl;
+      });
+    } else {
+      // Fallback para navegadores sin View Transitions
+      window.location.href = redirectUrl;
+    }
+  }
   
+  // ✅ Handle form submission - EXACTAMENTE igual que tu logout original
   if (loginForm) {
-    // ✅ Handle form submission - Solo loading state
     loginForm.addEventListener('submit', (e) => {
-      console.log('🔐 Form submitted, showing loading state...');
+      console.log('🔐 Login form submitted');
       
-      // Solo mostrar loading state en botón
+      // Solo mostrar spinner en botón
       loginBtn.disabled = true;
       btnText?.classList.add('hidden');
       btnSpinner?.classList.remove('hidden');
-    });
-
-    // ✅ Check for successful action result
-    window.addEventListener('DOMContentLoaded', () => {
-      const hasSuccess = document.querySelector('[data-login-success]');
       
-      if (hasSuccess) {
-        const redirectTo = hasSuccess.getAttribute('data-redirect-to');
-        console.log('✅ Login successful, redirecting to:', redirectTo);
-        
-        if (redirectTo) {
-          // ✅ Usar View Transitions API para navegación suave
-          if ('startViewTransition' in document) {
-            (document as any).startViewTransition(() => {
-              window.location.href = redirectTo;
-            });
-          } else {
-            // Fallback sin delay innecesario
-            window.location.href = redirectTo;
-          }
-        }
-      }
-    });
-
-    // ✅ Handle URL success params
-    const urlParams = new URLSearchParams(window.location.search);
-    const loginStatus = urlParams.get('login');
-
-    if (loginStatus === 'success') {
-      const redirectTo = urlParams.get('redirect') || '/dashboard';
+      // ✅ EXACTAMENTE igual que tu logout - simple toggle sin delay
+      setTimeout(() => {
+        loginCard?.classList.add('hidden');
+        loadingOverlay?.classList.remove('hidden');
+      }, 300);
       
-      if ('startViewTransition' in document) {
-        (document as any).startViewTransition(() => {
-          window.location.href = redirectTo;
-        });
-      } else {
-        window.location.href = redirectTo;
-      }
-    }
+      // ✅ EXACTAMENTE igual que tu logout - fallback timeout
+      setTimeout(() => {
+        console.log('⚠️ Login taking too long, forcing redirect...');
+        window.location.href = '/dashboard';
+      }, 8000);
+    });
   }
 
   function resetForm() {
@@ -181,10 +177,12 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
     if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
       loginForm?.reset();
       resetForm();
+      loginCard?.classList.remove('hidden');
+      loadingOverlay?.classList.add('hidden');
     }
   });
 
-  // Auto-focus email field if empty
+  // Auto-focus email field
   document.addEventListener('DOMContentLoaded', () => {
     const emailField = document.getElementById('email') as HTMLInputElement;
     if (emailField && !emailField.value) {
@@ -194,7 +192,7 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
 </script>
 
 <style>
-  /* ✅ Solo estilos básicos - Las View Transitions manejan las animaciones */
+  /* ✅ EXACTAMENTE los mismos estilos que tu logout original */
   .btn-spinner {
     display: flex;
     align-items: center;
@@ -206,18 +204,29 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
     cursor: not-allowed;
   }
 
-  /* ✅ Hover suave sin conflictos con View Transitions */
-  .input:focus {
-    transform: scale(1.01);
-    transition: transform 0.2s ease;
-  }
-
   .btn:hover:not(:disabled) {
     transform: translateY(-1px);
     transition: transform 0.2s ease;
   }
 
-  /* ✅ Focus styles para accesibilidad */
+  .login-container {
+    width: 100%;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .input:focus {
+    transform: scale(1.01);
+    transition: transform 0.2s ease;
+  }
+
   button:focus-visible,
   input:focus-visible,
   a:focus-visible {
@@ -225,12 +234,3 @@ const redirectUrl = searchParams.get('redirect') || '/dashboard';
     outline-offset: 2px;
   }
 </style>
-
-<!-- ✅ Hidden element para pasar data a JavaScript -->
-{success && data && (
-  <div 
-    data-login-success 
-    data-redirect-to={data.redirect}
-    style="display: none;"
-  ></div>
-)}

@@ -155,62 +155,61 @@ export const server = {
   }),
 
   // Iniciar sesión
-  login: defineAction({
-    accept: 'form',
-    input: loginSchema,
-    handler: async (input, context) => {
-      const startTime = Date.now();
+login: defineAction({
+  accept: 'form',
+  input: loginSchema,
+  handler: async (input, context) => {
+    const startTime = Date.now();
+    
+    try {
+      console.log('🔐 Starting login process for:', input.email);
       
-      try {
-        console.log('🔐 Starting login process for:', input.email);
-        
-        const response = await authService.login({
-          email: input.email,
-          password: input.password,
-        });
+      const response = await authService.login({
+        email: input.email,
+        password: input.password,
+      });
 
-        console.log('✅ Authentication successful, fetching permissions...');
+      console.log('✅ Authentication successful, fetching permissions...');
 
-        // Obtener permisos del usuario
-        const permissions = await authService.getUserPermissions(response.access_token);
-        
-        // Crear usuario de sesión
-        const sessionUser = createSessionUser(response, permissions.permissions);
-        
-        // Guardar en sesión
-        await context.session?.set('user', sessionUser);
-        
-        const endTime = Date.now();
-        console.log(`🎉 Login completed successfully in ${endTime - startTime}ms`);
+      // Obtener permisos del usuario
+      const permissions = await authService.getUserPermissions(response.access_token);
+      
+      // Crear usuario de sesión
+      const sessionUser = createSessionUser(response, permissions.permissions);
+      
+      // Guardar en sesión
+      await context.session?.set('user', sessionUser);
+      
+      const endTime = Date.now();
+      console.log(`🎉 Login completed successfully in ${endTime - startTime}ms`);
 
-        // Determinar URL de redirección
-        const redirectUrl = input.redirect_to || '/dashboard';
-
-        return { 
-          success: true, 
-          message: 'Sesión iniciada exitosamente',
-          redirect: redirectUrl,
-          shouldRedirect: true,
-          user: {
-            id: sessionUser.id,
-            email: sessionUser.email,
-            first_name: sessionUser.first_name,
-            last_name: sessionUser.last_name,
-            role: sessionUser.role,
-            permissions: sessionUser.permissions
-          }
-        };
-      } catch (error) {
-        const endTime = Date.now();
-        console.error(`❌ Login failed after ${endTime - startTime}ms:`, error);
-        
-        throw new ActionError({
-          code: 'UNAUTHORIZED',
-          message: getAuthErrorMessage(error),
-        });
-      }
-    },
-  }),
+      // ✅ CORREGIDO: Solo usar 'redirectUrl' consistentemente
+      return { 
+        success: true, 
+        message: 'Login successful',
+        // ✅ Solo 'redirectUrl' - eliminar 'redirect' para evitar confusión
+        redirectUrl: input.redirect_to || '/dashboard',
+        user: {
+          id: sessionUser.id,
+          email: sessionUser.email,
+          first_name: sessionUser.first_name,
+          last_name: sessionUser.last_name,
+          role: sessionUser.role,
+          permissions: sessionUser.permissions
+        }
+      };
+      
+    } catch (error) {
+      const endTime = Date.now();
+      console.error(`❌ Login failed after ${endTime - startTime}ms:`, error);
+      
+      throw new ActionError({
+        code: 'UNAUTHORIZED',
+        message: getAuthErrorMessage(error),
+      });
+    }
+  },
+}),
 
 // FIXED: Logout action - src/actions/index.ts (fragmento corregido)
 
