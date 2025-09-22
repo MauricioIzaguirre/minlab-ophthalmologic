@@ -123,6 +123,24 @@ const {
         console.log(`🎨 Auth Initial theme applied: ${isDark ? 'dark' : 'light'}`);
       })();
     </script>
+    <!-- ✅ Scripts adicionales para reset de formularios -->
+    <script>
+      // ✅ Limpiar formularios en navegación hacia atrás
+      document.addEventListener('astro:after-swap', () => {
+        // Reset form states if needed
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+          const submitBtn = form.querySelector('[type="submit"]') as HTMLButtonElement;
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            const btnText = submitBtn.querySelector('.btn-text');
+            const btnSpinner = submitBtn.querySelector('.btn-spinner');
+            if (btnText) btnText.classList.remove('hidden');
+            if (btnSpinner) btnSpinner.classList.add('hidden');
+          }
+        });
+      });
+    </script>
     
     <!-- ✅ ClientRouter DESPUÉS del script de tema -->
     <ClientRouter />
@@ -224,25 +242,6 @@ const {
 
     <!-- 🚨 CRÍTICO: Contenedor del toaster al final del body -->
     <div id="toaster" class="toaster" data-align="end"></div>
-
-    <!-- ✅ Scripts adicionales para reset de formularios -->
-    <script>
-      // ✅ Limpiar formularios en navegación hacia atrás
-      document.addEventListener('astro:after-swap', () => {
-        // Reset form states if needed
-        const forms = document.querySelectorAll('form');
-        forms.forEach(form => {
-          const submitBtn = form.querySelector('[type="submit"]') as HTMLButtonElement;
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            const btnText = submitBtn.querySelector('.btn-text');
-            const btnSpinner = submitBtn.querySelector('.btn-spinner');
-            if (btnText) btnText.classList.remove('hidden');
-            if (btnSpinner) btnSpinner.classList.add('hidden');
-          }
-        });
-      });
-    </script>
   </body>
 </html>
 
