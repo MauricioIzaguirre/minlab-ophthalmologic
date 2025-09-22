@@ -131,9 +131,11 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    <!-- ✅ Basecoat scripts (mismos que BaseLayout) -->
+    <!-- ✅ Basecoat scripts - AGREGADO EL SCRIPT DE TOAST -->
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/basecoat.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/sidebar.min.js" defer></script>
+    <!-- 🚨 CRÍTICO: Script específico para toasts -->
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/toast.min.js" defer></script>
   </head>
   
   <body class="min-h-screen bg-background font-sans antialiased bg-dotted-pattern hide-scrollbar">
@@ -219,6 +221,9 @@ const {
     <div transition:name="theme-switcher">
       <ThemeSwitcher />
     </div>
+
+    <!-- 🚨 CRÍTICO: Contenedor del toaster al final del body -->
+    <div id="toaster" class="toaster" data-align="end"></div>
 
     <!-- ✅ Scripts adicionales para reset de formularios -->
     <script>
@@ -355,5 +360,48 @@ const {
   .input:focus {
     transform: scale(1.01);
     transition: transform 0.2s ease;
+  }
+
+  /* ✅ Estilos específicos para toaster en auth */
+  .toaster {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+  }
+  
+  .toaster[data-align="start"] {
+    top: 1rem;
+    left: 1rem;
+  }
+  
+  .toaster[data-align="center"] {
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .toaster[data-align="end"] {
+    top: 1rem;
+    right: 1rem;
+  }
+  
+  @media (max-width: 640px) {
+    .toaster {
+      left: 1rem !important;
+      right: 1rem !important;
+      transform: none !important;
+    }
+  }
+  
+  .toast {
+    pointer-events: auto;
+    margin-bottom: 0.5rem;
+    /* Ensure toasts appear above auth content */
+    position: relative;
+  }
+
+  /* ✅ Asegurar que toasts aparezcan sobre el contenido de auth */
+  .toast {
+    backdrop-filter: blur(8px);
   }
 </style>

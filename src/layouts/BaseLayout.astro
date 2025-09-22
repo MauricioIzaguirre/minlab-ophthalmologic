@@ -1,5 +1,5 @@
 ---
-// BaseLayout.astro - CON SOLUCIÓN ANTI-PARPADEO MEJORADA
+// BaseLayout.astro - CON SOLUCIÓN ANTI-PARPADEO MEJORADA Y TOASTER
 import "../styles/global.css";
 import AppSidebar from "../components/layout/AppSidebar.astro";
 import AppHeader from "../components/layout/AppHeader.astro";
@@ -123,9 +123,11 @@ const {
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     
-    <!-- ✅ Basecoat scripts -->
+    <!-- ✅ Basecoat scripts - AGREGADO EL SCRIPT DE TOAST -->
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/basecoat.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/sidebar.min.js" defer></script>
+    <!-- 🚨 CRÍTICO: Script específico para toasts -->
+    <script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.3.2/dist/js/toast.min.js" defer></script>
   </head>
 
   <body class="min-h-screen bg-background font-sans antialiased hide-scrollbar">
@@ -133,16 +135,12 @@ const {
     <div class="relative flex min-h-screen w-full" transition:name="app-container">
       
       <!-- ✅ Application Sidebar -->
-      <div transition:name="app-sidebar">
         <AppSidebar />
-      </div>
       
       <!-- ✅ Main Content Area -->
       <div class="flex flex-1 flex-col lg:ml-64" transition:name="main-content">
         <!-- ✅ Application Header -->
-        <div transition:name="app-header">
           <AppHeader />
-        </div>
         
         <!-- ✅ Page Content -->
         <main class="flex-1 p-4" transition:name="page-content">
@@ -150,6 +148,9 @@ const {
         </main>
       </div>
     </div>
+
+    <!-- 🚨 CRÍTICO: Contenedor del toaster al final del body -->
+    <div id="toaster" class="toaster" data-align="end"></div>
   </body>
 </html>
 
@@ -285,5 +286,41 @@ const {
   [transition\:name] {
     backface-visibility: hidden;
     transform: translateZ(0);
+  }
+
+  /* ✅ Estilos específicos para toaster */
+  .toaster {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+  }
+  
+  .toaster[data-align="start"] {
+    top: 1rem;
+    left: 1rem;
+  }
+  
+  .toaster[data-align="center"] {
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  
+  .toaster[data-align="end"] {
+    top: 1rem;
+    right: 1rem;
+  }
+  
+  @media (max-width: 640px) {
+    .toaster {
+      left: 1rem !important;
+      right: 1rem !important;
+      transform: none !important;
+    }
+  }
+  
+  .toast {
+    pointer-events: auto;
+    margin-bottom: 0.5rem;
   }
 </style>
