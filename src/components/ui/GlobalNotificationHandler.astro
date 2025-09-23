@@ -1,0 +1,181 @@
+---
+// src/components/ui/GlobalNotificationHandler.astro
+// No server-side logic needed - this is purely client-side
+---
+
+<script>
+  import { notifications } from '../../lib/utils/notifications';
+  
+  /**
+   * Global notification handler for common scenarios
+   * This script runs on every page to handle global notification needs
+   */
+
+  // Define types for Astro events
+  interface AstroNavigationEvent extends Event {
+    direction?: 'forward' | 'back' | undefined;
+  }
+  
+  // Handle global error states
+  window.addEventListener('error', (event) => {
+    // Only show notifications for network-related errors, not code errors
+    if (event.message?.includes('fetch') || event.message?.includes('network')) {
+      notifications.showMessage('NETWORK_ERROR', 'error');
+    }
+  });
+
+  // Handle unhandled promise rejections (like failed API calls)
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    
+    // Check if it's a network or auth related error
+    const reason = event.reason?.message?.toLowerCase() || '';
+    
+    if (reason.includes('fetch') || reason.includes('network')) {
+      notifications.showMessage('NETWORK_ERROR', 'error');
+      event.preventDefault(); // Prevent console spam
+    } else if (reason.includes('unauthorized') || reason.includes('401')) {
+      notifications.showMessage('UNAUTHORIZED', 'error');
+      event.preventDefault();
+    } else if (reason.includes('forbidden') || reason.includes('403')) {
+      notifications.showMessage('FORBIDDEN', 'error');
+      event.preventDefault();
+    }
+  });
+
+  // Handle navigation errors with Astro View Transitions
+  document.addEventListener('astro:before-preparation', (event) => {
+    // Show loading state for slow navigations
+    const slowNavigationTimer = setTimeout(() => {
+      notifications.info('Loading...', 'Please wait while we load the page.');
+    }, 2000);
+
+    // Clear timer when navigation completes
+    document.addEventListener('astro:after-swap', () => {
+      clearTimeout(slowNavigationTimer);
+    }, { once: true });
+  });
+
+  // Handle failed navigations - CORRECCIÓN AQUÍ
+  document.addEventListener('astro:after-preparation', (event: AstroNavigationEvent) => {
+    if (event.direction === 'forward' || event.direction === 'back') {
+      const currentUrl = window.location.pathname;
+      
+      // Check for common error pages
+      if (currentUrl.includes('/404') || currentUrl.includes('/error')) {
+        notifications.error('Page not found', 'The requested page could not be found.');
+      }
+    }
+  });
+
+  // Enhanced connection status monitoring
+  let wasOffline = false;
+
+  window.addEventListener('offline', () => {
+    wasOffline = true;
+    notifications.warning(
+      'No internet connection',
+      'Some features may not work until connection is restored.'
+    );
+  });
+
+  window.addEventListener('online', () => {
+    if (wasOffline) {
+      notifications.success('Connection restored', 'You are back online.');
+      wasOffline = false;
+    }
+  });
+
+  // Handle form validation errors globally
+  document.addEventListener('invalid', (event) => {
+    const target = event.target as HTMLInputElement;
+    if (target && target.validationMessage) {
+      // Don't spam with notifications for every invalid field
+      // Just ensure the browser handles it naturally
+      console.log('Form validation error:', target.validationMessage);
+    }
+  }, true);
+
+  // Handle browser storage quota issues
+  window.addEventListener('storage', (event) => {
+    if (event.key === null) {
+      // Storage was cleared
+      console.log('Browser storage was cleared');
+    }
+  });
+
+  // Monitor for authentication state changes across tabs
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'auth-state-change') {
+      const newValue = event.newValue;
+      
+      if (newValue === 'logged-out') {
+        notifications.info(
+          'Signed out',
+          'You have been signed out in another tab.'
+        );
+        
+        // Redirect to login after a delay
+        setTimeout(() => {
+          window.location.href = '/auth/login?message=signed-out-elsewhere';
+        }, 2000);
+      } else if (newValue === 'logged-in') {
+        // Optional: reload page or update UI
+        notifications.info(
+          'Signed in',
+          'You have been signed in from another tab.'
+        );
+      }
+    }
+  });
+
+  // Utility function to trigger cross-tab notifications - CORRECCIÓN AQUÍ
+  (window as any).broadcastAuthStateChange = (state: 'logged-in' | 'logged-out'): void => {
+    try {
+      localStorage.setItem('auth-state-change', state);
+      // Clear it immediately so it can be set again
+      setTimeout(() => {
+        localStorage.removeItem('auth-state-change');
+      }, 100);
+    } catch (error) {
+      console.warn('Could not broadcast auth state change:', error);
+    }
+  };
+
+  // Handle page visibility changes (helpful for session management)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      // Page became visible - could check if session is still valid
+      console.log('Page became visible - session check recommended');
+    }
+  });
+
+  // Initialize notifications system
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔔 Global notification handler initialized');
+    
+    // Ensure toaster exists (redundant safety check)
+    if (!document.getElementById('toaster')) {
+      console.warn('⚠️ Toast container not found - creating fallback');
+      const toaster = document.createElement('div');
+      toaster.id = 'toaster';
+      toaster.className = 'toaster';
+      toaster.setAttribute('data-align', 'end');
+      document.body.appendChild(toaster);
+    }
+  });
+
+  // Debug mode for development
+  if (import.meta.env.MODE === 'development') {
+    // Expose notifications to global scope for debugging
+    (window as any).notifications = notifications;
+    
+    // Add keyboard shortcut to test notifications (Ctrl+Alt+T)
+    document.addEventListener('keydown', (event) => {
+      if (event.ctrlKey && event.altKey && event.key === 't') {
+        notifications.info('Test notification', 'This is a test toast notification for development.');
+        console.log('🧪 Test notification triggered via Ctrl+Alt+T');
+      }
+    });
+  }
+</script>

@@ -2,6 +2,8 @@
 import "../styles/global.css";
 import ThemeSwitcher from "../components/ui/themeSwitcher.astro";
 import { ClientRouter } from "astro:transitions";
+// ✅ AGREGAR: Import del GlobalNotificationHandler
+import GlobalNotificationHandler from "../components/ui/GlobalNotificationHandler.astro";
 
 export interface Props {
   title?: string;
@@ -123,6 +125,40 @@ const {
         console.log(`🎨 Auth Initial theme applied: ${isDark ? 'dark' : 'light'}`);
       })();
     </script>
+    
+    <!-- ✅ AGREGAR: Script de inicialización de notificaciones -->
+    <script is:inline>
+      // Initialize notification system early
+      (() => {
+        // Ensure global notifications namespace exists
+        window.notificationQueue = window.notificationQueue || [];
+        
+        // Queue notifications before system is ready
+        window.queueNotification = function(config) {
+          if (window.notificationQueue) {
+            window.notificationQueue.push(config);
+          }
+        };
+
+        // Process queued notifications when system is ready
+        document.addEventListener('DOMContentLoaded', () => {
+          const processQueue = () => {
+            if (window.notifications && window.notificationQueue) {
+              window.notificationQueue.forEach(config => {
+                window.notifications.show(config);
+              });
+              window.notificationQueue = [];
+            } else {
+              // Retry if notifications not ready
+              setTimeout(processQueue, 100);
+            }
+          };
+          
+          setTimeout(processQueue, 500);
+        });
+      })();
+    </script>
+    
     <!-- ✅ Scripts adicionales para reset de formularios -->
     <script>
       // ✅ Limpiar formularios en navegación hacia atrás
@@ -234,6 +270,9 @@ const {
         </div>
       </div>
     </div>
+    
+    <!-- ✅ AGREGAR: Global notification handler -->
+    <GlobalNotificationHandler />
     
     <!-- ✅ Theme Toggle Button Component con transition name -->
     <div transition:name="theme-switcher">
@@ -403,4 +442,3 @@ const {
   .toast {
     backdrop-filter: blur(8px);
   }
-</style>

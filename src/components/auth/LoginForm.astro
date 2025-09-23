@@ -1,5 +1,5 @@
 ---
-// LoginForm.astro - CORREGIDO siguiendo el patrón exitoso del logout original
+// LoginForm.astro - ENHANCED with notifications
 import { actions } from 'astro:actions';
 
 // Get action result (solo para logs en consola)
@@ -116,6 +116,9 @@ if (errorParam) {
 )}
 
 <script>
+  // ✅ AGREGADO: Import del sistema de notificaciones
+  import { notifications } from '../../lib/utils/notifications';
+  
   const loginForm = document.getElementById('login-form') as HTMLFormElement;
   const loginBtn = document.getElementById('login-btn') as HTMLButtonElement;
   const btnText = loginBtn.querySelector('.btn-text');
@@ -124,23 +127,28 @@ if (errorParam) {
   const loginCard = document.getElementById('login-card');
   const successFlag = document.getElementById('login-success-flag');
 
-  // ✅ CORREGIDO: Handle successful login igual que tu logout original
+  // ✅ MEJORADO: Handle successful login con notificación
   if (successFlag) {
     const redirectUrl = successFlag.getAttribute('data-redirect') || '/dashboard';
-    console.log('✅ Login successful, redirecting to:', redirectUrl);
+    console.log('✅ Login successful, showing notification and redirecting to:', redirectUrl);
     
-    // ✅ EXACTAMENTE igual que tu logout original - View Transitions
-    if ('startViewTransition' in document) {
-      (document as any).startViewTransition(() => {
+    // ✅ AGREGADO: Mostrar notificación de éxito
+    notifications.auth.loginSuccess();
+    
+    // ✅ MODIFICADO: Delay para mostrar notificación
+    setTimeout(() => {
+      if ('startViewTransition' in document) {
+        (document as any).startViewTransition(() => {
+          window.location.href = redirectUrl;
+        });
+      } else {
+        // Fallback para navegadores sin View Transitions
         window.location.href = redirectUrl;
-      });
-    } else {
-      // Fallback para navegadores sin View Transitions
-      window.location.href = redirectUrl;
-    }
+      }
+    }, 1000); // Cambió de inmediato a 1 segundo
   }
   
-  // ✅ Handle form submission - EXACTAMENTE igual que tu logout original
+  // ✅ Handle form submission - MEJORADO con mejor manejo de errores
   if (loginForm) {
     loginForm.addEventListener('submit', (e) => {
       console.log('🔐 Login form submitted');
@@ -150,18 +158,70 @@ if (errorParam) {
       btnText?.classList.add('hidden');
       btnSpinner?.classList.remove('hidden');
       
-      // ✅ EXACTAMENTE igual que tu logout - simple toggle sin delay
+      // Simple toggle sin delay
       setTimeout(() => {
         loginCard?.classList.add('hidden');
         loadingOverlay?.classList.remove('hidden');
       }, 300);
       
-      // ✅ EXACTAMENTE igual que tu logout - fallback timeout
-      setTimeout(() => {
-        console.log('⚠️ Login taking too long, forcing redirect...');
-        window.location.href = '/dashboard';
+      // ✅ MEJORADO: Timeout con notificación de error
+      const timeoutId = setTimeout(() => {
+        console.log('⚠️ Login taking too long, showing error notification');
+        
+        // Reset UI
+        resetForm();
+        loginCard?.classList.remove('hidden');
+        loadingOverlay?.classList.add('hidden');
+        
+        // ✅ AGREGADO: Mostrar notificación de error
+        notifications.error('Connection timeout', 'The request is taking too long. Please try again.');
+        
+        // Fallback redirect después de mostrar error
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 2000);
       }, 8000);
+
+      // Clear timeout if login succeeds
+      if (successFlag) {
+        clearTimeout(timeoutId);
+      }
     });
+  }
+
+  // ✅ AGREGADO: Manejo de errores de URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const errorParam = urlParams.get('error');
+  const messageParam = urlParams.get('message');
+
+  if (errorParam) {
+    switch (errorParam) {
+      case 'unauthorized':
+        notifications.auth.loginError('Invalid credentials. Please try again.');
+        break;
+      case 'session-error':
+        notifications.warning('Session expired', 'Please sign in again to continue.');
+        break;
+      case 'rate-limited':
+        notifications.warning('Too many attempts', 'Please wait a moment before trying again.');
+        break;
+      default:
+        notifications.auth.loginError();
+    }
+    
+    // Clean URL without reloading
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('error');
+    window.history.replaceState({}, '', cleanUrl.toString());
+  }
+
+  if (messageParam === 'logged-out') {
+    notifications.auth.logoutSuccess();
+    
+    // Clean URL
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('message');
+    window.history.replaceState({}, '', cleanUrl.toString());
   }
 
   function resetForm() {
@@ -185,9 +245,19 @@ if (errorParam) {
   // Auto-focus email field
   document.addEventListener('DOMContentLoaded', () => {
     const emailField = document.getElementById('email') as HTMLInputElement;
-    if (emailField && !emailField.value) {
-      emailField.focus();
+    if (emailField && !emailField.value && !errorParam) {
+      // Only auto-focus if there's no error (better UX)
+      setTimeout(() => emailField.focus(), 100);
     }
+  });
+
+  // ✅ AGREGADO: Manejo de estado de red
+  window.addEventListener('offline', () => {
+    notifications.warning('No internet connection', 'Please check your connection and try again.');
+  });
+
+  window.addEventListener('online', () => {
+    notifications.info('Connection restored', 'You are back online.');
   });
 </script>
 
