@@ -1,215 +1,267 @@
 ---
-// RegisterForm.astro - FIXED: TypeScript errors resolved
+// RegisterForm.astro - MEJORADO: Con sistema de notificaciones y animaciones como login/logout
 import { actions } from 'astro:actions';
 
-// Get any action result from the current request - FIXED: Proper type handling
+// ✅ SOLO obtener resultado, NUNCA hacer Astro.redirect() 
 const result = Astro.getActionResult(actions.register);
 const error = result?.error;
 const data = result?.data;
 const success = data?.success;
 
-// IMPORTANTE: NO hacer Astro.redirect() aquí porque causa ResponseSentError
-// La redirección se maneja completamente en el frontend
+// ✅ Solo logs - NUNCA redirecciones en el servidor
+if (error) {
+  console.error('❌ Register error:', error.message);
+}
+if (success) {
+  console.log('✅ User registered successfully - redirect will be handled by JavaScript');
+}
+
+// Get URL search params for messages
+const { searchParams } = new URL(Astro.request.url);
+const errorParam = searchParams.get('error');
 ---
 
-<div class="card w-full">
-  <header>
-    <h2>Create your account</h2>
-    <p>Join us today and start your journey</p>
-  </header>
+<!-- ✅ Container para transiciones -->
+<div class="register-container">
+  <!-- ✅ Register card con transition name -->
+  <div class="card w-full" id="register-card" transition:name="register-main-card">
+    <header transition:name="register-header">
+      <h2>Create your account</h2>
+      <p>Join us today and start your journey</p>
+    </header>
 
-  <!-- Display messages -->
-  {error && (
-    <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 mb-4 text-sm">
-      {error.message}
+    <section transition:name="register-form-section">
+      <form method="POST" action={actions.register} class="form grid gap-6" id="register-form">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="grid gap-2">
+            <label for="first_name">First name</label>
+            <input 
+              type="text" 
+              id="first_name" 
+              name="first_name"
+              required
+              class="input"
+              placeholder="Enter your first name"
+              autocomplete="given-name"
+            />
+          </div>
+          <div class="grid gap-2">
+            <label for="last_name">Last name</label>
+            <input 
+              type="text" 
+              id="last_name" 
+              name="last_name"
+              required
+              class="input"
+              placeholder="Enter your last name"
+              autocomplete="family-name"
+            />
+          </div>
+        </div>
+
+        <div class="grid gap-2">
+          <label for="email">Email address</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email"
+            required
+            class="input"
+            placeholder="Enter your email address"
+            autocomplete="email"
+          />
+        </div>
+
+        <div class="grid gap-2">
+          <label for="phone">Phone number</label>
+          <input 
+            type="tel" 
+            id="phone" 
+            name="phone"
+            required
+            class="input"
+            placeholder="Enter your phone number"
+            autocomplete="tel"
+          />
+        </div>
+
+        <div class="grid gap-2">
+          <label for="password">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password"
+            required
+            class="input"
+            placeholder="Create a strong password"
+            autocomplete="new-password"
+            minlength="6"
+          />
+          <div class="text-xs text-muted-foreground">
+            Password must be at least 6 characters long
+          </div>
+        </div>
+
+        <div class="grid gap-2">
+          <label for="confirm_password">Confirm password</label>
+          <input 
+            type="password" 
+            id="confirm_password" 
+            name="confirm_password"
+            required
+            class="input"
+            placeholder="Confirm your password"
+            autocomplete="new-password"
+          />
+        </div>
+
+        <!-- Password strength indicator -->
+        <div class="grid gap-2" id="password-strength" style="display: none;">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-muted-foreground">Password strength</span>
+            <span class="text-xs text-muted-foreground" id="strength-text">Weak</span>
+          </div>
+          <div class="w-full bg-muted rounded-full h-2">
+            <div class="bg-red-500 h-2 rounded-full transition-all duration-300" id="strength-bar" style="width: 25%"></div>
+          </div>
+        </div>
+
+        <!-- Password requirements checklist -->
+        <div class="grid gap-2 text-xs">
+          <p class="text-muted-foreground">Your password should contain:</p>
+          <div class="grid grid-cols-1 gap-1 ml-4">
+            <div class="flex items-center gap-2" id="length-check">
+              <div class="w-3 h-3 rounded-full bg-muted flex items-center justify-center">
+                <div class="w-1.5 h-1.5 rounded-full bg-muted-foreground"></div>
+              </div>
+              <span class="text-muted-foreground">At least 6 characters</span>
+            </div>
+            <div class="flex items-center gap-2" id="uppercase-check">
+              <div class="w-3 h-3 rounded-full bg-muted flex items-center justify-center">
+                <div class="w-1.5 h-1.5 rounded-full bg-muted-foreground"></div>
+              </div>
+              <span class="text-muted-foreground">One uppercase letter (recommended)</span>
+            </div>
+            <div class="flex items-center gap-2" id="number-check">
+              <div class="w-3 h-3 rounded-full bg-muted flex items-center justify-center">
+                <div class="w-1.5 h-1.5 rounded-full bg-muted-foreground"></div>
+              </div>
+              <span class="text-muted-foreground">One number (recommended)</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-start space-x-2">
+          <input 
+            type="checkbox" 
+            id="terms" 
+            name="terms" 
+            required 
+            class="rounded mt-1"
+          />
+          <label for="terms" class="text-sm leading-5">
+            I agree to the 
+            <a href="/legal/terms" class="text-primary hover:underline">Terms of Service</a> 
+            and 
+            <a href="/legal/privacy" class="text-primary hover:underline">Privacy Policy</a>
+          </label>
+        </div>
+
+        <div class="flex items-start space-x-2">
+          <input 
+            type="checkbox" 
+            id="marketing" 
+            name="marketing" 
+            class="rounded mt-1"
+          />
+          <label for="marketing" class="text-sm leading-5 text-muted-foreground">
+            I would like to receive marketing communications and product updates
+          </label>
+        </div>
+
+        <button type="submit" class="btn w-full" id="register-btn" transition:name="register-submit-button">
+          <span class="btn-text">Create account</span>
+          <div class="btn-spinner hidden">
+            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          </div>
+        </button>
+      </form>
+    </section>
+
+    <footer class="mt-6 text-center" transition:name="register-footer">
+      <p class="text-sm text-muted-foreground">
+        Already have an account? 
+        <a href="/auth/login" class="text-primary hover:underline font-medium">
+          Sign in here
+        </a>
+      </p>
+    </footer>
+  </div>
+
+  <!-- ✅ Loading state igual que login/logout -->
+  <div class="card w-full text-center hidden" id="loading-overlay" transition:name="register-loading-card">
+    <div class="flex flex-col items-center gap-4 py-16">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <p class="text-lg text-muted-foreground">Creating your account...</p>
+      <p class="text-sm text-muted-foreground">This will only take a moment...</p>
     </div>
-  )}
-
-  <section>
-    <!-- FIXED: Use action.toString() for form action -->
-    <form method="POST" action={actions.register.toString()} class="form grid gap-6" id="register-form">
-      <div class="grid grid-cols-2 gap-4">
-        <div class="grid gap-2">
-          <label for="first_name">First name</label>
-          <input 
-            type="text" 
-            id="first_name" 
-            name="first_name"
-            required
-            class="input"
-            placeholder="Enter your first name"
-          />
-        </div>
-        <div class="grid gap-2">
-          <label for="last_name">Last name</label>
-          <input 
-            type="text" 
-            id="last_name" 
-            name="last_name"
-            required
-            class="input"
-            placeholder="Enter your last name"
-          />
-        </div>
-      </div>
-
-      <div class="grid gap-2">
-        <label for="email">Email address</label>
-        <input 
-          type="email" 
-          id="email" 
-          name="email"
-          required
-          class="input"
-          placeholder="Enter your email address"
-        />
-      </div>
-
-      <div class="grid gap-2">
-        <label for="phone">Phone number</label>
-        <input 
-          type="tel" 
-          id="phone" 
-          name="phone"
-          required
-          class="input"
-          placeholder="Enter your phone number"
-        />
-      </div>
-
-      <div class="grid gap-2">
-        <label for="password">Password</label>
-        <input 
-          type="password" 
-          id="password" 
-          name="password"
-          required
-          class="input"
-          placeholder="Create a strong password"
-        />
-        <div class="text-xs text-muted-foreground">
-          Password must be at least 6 characters long
-        </div>
-      </div>
-
-      <div class="grid gap-2">
-        <label for="confirm_password">Confirm password</label>
-        <input 
-          type="password" 
-          id="confirm_password" 
-          name="confirm_password"
-          required
-          class="input"
-          placeholder="Confirm your password"
-        />
-      </div>
-
-      <!-- Password strength indicator -->
-      <div class="grid gap-2" id="password-strength" style="display: none;">
-        <div class="flex justify-between items-center">
-          <span class="text-xs text-muted-foreground">Password strength</span>
-          <span class="text-xs text-muted-foreground" id="strength-text">Weak</span>
-        </div>
-        <div class="w-full bg-muted rounded-full h-2">
-          <div class="bg-red-500 h-2 rounded-full transition-all duration-300" id="strength-bar" style="width: 25%"></div>
-        </div>
-      </div>
-
-      <div class="flex items-start space-x-2">
-        <input 
-          type="checkbox" 
-          id="terms" 
-          name="terms" 
-          required 
-          class="rounded mt-1"
-        />
-        <label for="terms" class="text-sm leading-5">
-          I agree to the 
-          <a href="/legal/terms" class="text-primary hover:underline">Terms of Service</a> 
-          and 
-          <a href="/legal/privacy" class="text-primary hover:underline">Privacy Policy</a>
-        </label>
-      </div>
-
-      <div class="flex items-start space-x-2">
-        <input 
-          type="checkbox" 
-          id="marketing" 
-          name="marketing" 
-          class="rounded mt-1"
-        />
-        <label for="marketing" class="text-sm leading-5 text-muted-foreground">
-          I would like to receive marketing communications and product updates
-        </label>
-      </div>
-
-      <button type="submit" class="btn w-full" id="register-btn">
-        <span class="btn-text">Create account</span>
-        <div class="btn-spinner hidden">
-          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-        </div>
-      </button>
-    </form>
-  </section>
-
-  <footer class="mt-6 text-center">
-    <p class="text-sm text-muted-foreground">
-      Already have an account? 
-      <a href="/auth/login" class="text-primary hover:underline font-medium">
-        Sign in here
-      </a>
-    </p>
-  </footer>
+  </div>
 </div>
 
+<!-- ✅ Hidden success flag para JavaScript - CORREGIDO: usar 'redirect' en lugar de 'redirectUrl' -->
+{success && result?.data && (
+  <div 
+    id="register-success-flag" 
+    style="display: none;" 
+    data-redirect={result.data.redirect || '/dashboard'}
+    data-message={result.data.message || 'Account created successfully'}
+  ></div>
+)}
+
 <script>
-  interface RegisterFormElements extends HTMLFormControlsCollection {
-    first_name: HTMLInputElement;
-    last_name: HTMLInputElement;
-    email: HTMLInputElement;
-    phone: HTMLInputElement;
-    password: HTMLInputElement;
-    confirm_password: HTMLInputElement;
-    terms: HTMLInputElement;
-    marketing: HTMLInputElement;
-  }
-
-  interface RegisterForm extends HTMLFormElement {
-    readonly elements: RegisterFormElements;
-  }
-
-  // Utility function to show toast notifications
-  function showToast(message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') {
-    // Try basecoat event first
-    document.dispatchEvent(new CustomEvent('basecoat:toast', {
-      detail: {
-        config: {
-          category: type,
-          title: type.charAt(0).toUpperCase() + type.slice(1),
-          description: message,
-          cancel: { label: 'Dismiss' }
-        }
-      }
-    }));
-
-    // Also trigger custom app event as fallback
-    document.dispatchEvent(new CustomEvent('app:toast', {
-      detail: { message, type }
-    }));
-  }
-
-  const registerForm = document.getElementById('register-form') as RegisterForm;
+  // ✅ AGREGADO: Import del sistema de notificaciones y NOTIFICATION_MESSAGES
+  import { notifications } from '../../lib/utils/notifications';
+  import { NOTIFICATION_MESSAGES } from '../../types/notifications';
+  
+  const registerForm = document.getElementById('register-form') as HTMLFormElement;
   const registerBtn = document.getElementById('register-btn') as HTMLButtonElement;
   const btnText = registerBtn.querySelector('.btn-text');
   const btnSpinner = registerBtn.querySelector('.btn-spinner');
+  const registerCard = document.getElementById('register-card');
+  const loadingOverlay = document.getElementById('loading-overlay');
+  const successFlag = document.getElementById('register-success-flag');
   const passwordInput = document.getElementById('password') as HTMLInputElement;
   const confirmPasswordInput = document.getElementById('confirm_password') as HTMLInputElement;
   const strengthContainer = document.getElementById('password-strength');
   const strengthBar = document.getElementById('strength-bar');
   const strengthText = document.getElementById('strength-text');
 
-  // Password strength validation
-  function checkPasswordStrength(password: string) {
+  // ✅ MEJORADO: Handle successful registration
+  if (successFlag) {
+    const redirectUrl = successFlag.getAttribute('data-redirect') || '/dashboard';
+    const message = successFlag.getAttribute('data-message') || 'Account created successfully';
+    console.log('✅ Registration successful, showing notification and redirecting to:', redirectUrl);
+    
+    // ✅ AGREGADO: Mostrar notificación de éxito
+    notifications.success(
+      NOTIFICATION_MESSAGES.REGISTER_SUCCESS.title, 
+      NOTIFICATION_MESSAGES.REGISTER_SUCCESS.description
+    );
+    
+    // ✅ MODIFICADO: Delay para mostrar notificación
+    setTimeout(() => {
+      if ('startViewTransition' in document) {
+        (document as any).startViewTransition(() => {
+          window.location.href = redirectUrl;
+        });
+      } else {
+        window.location.href = redirectUrl;
+      }
+    }, 1000);
+  }
+
+  // ✅ Password strength validation
+  function checkPasswordStrength(password: string): boolean {
     let score = 0;
     let feedback = 'Weak';
     let color = 'bg-red-500';
@@ -220,6 +272,11 @@ const success = data?.success;
     if (/[A-Z]/.test(password)) score += 1;
     if (/[0-9]/.test(password)) score += 1;
     if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    
+    // Update requirements checklist
+    updateRequirementCheck('length-check', password.length >= 6);
+    updateRequirementCheck('uppercase-check', /[A-Z]/.test(password));
+    updateRequirementCheck('number-check', /[0-9]/.test(password));
     
     switch (true) {
       case score <= 2:
@@ -245,6 +302,24 @@ const success = data?.success;
       strengthBar.style.width = `${(score / 6) * 100}%`;
       strengthText.textContent = feedback;
     }
+    
+    return score >= 3; // At least fair password
+  }
+
+  function updateRequirementCheck(elementId: string, passed: boolean): void {
+    const element = document.getElementById(elementId);
+    const circle = element?.querySelector('div > div');
+    const text = element?.querySelector('span');
+    
+    if (circle && text) {
+      if (passed) {
+        circle.className = 'w-1.5 h-1.5 rounded-full bg-green-500';
+        text.className = 'text-green-600';
+      } else {
+        circle.className = 'w-1.5 h-1.5 rounded-full bg-muted-foreground';
+        text.className = 'text-muted-foreground';
+      }
+    }
   }
 
   // Show password strength on input
@@ -261,7 +336,7 @@ const success = data?.success;
   }
 
   // Password confirmation validation
-  function validatePasswordMatch() {
+  function validatePasswordMatch(): boolean {
     const password = passwordInput?.value || '';
     const confirmPassword = confirmPasswordInput?.value || '';
     
@@ -279,39 +354,106 @@ const success = data?.success;
     passwordInput?.addEventListener('input', validatePasswordMatch);
   }
 
-  // Handle form submission
+  // ✅ Handle form submission - IGUAL que login/logout
   if (registerForm) {
     registerForm.addEventListener('submit', (e) => {
+      console.log('📝 Register form submitted');
+
       // Validate passwords match
       if (!validatePasswordMatch()) {
         e.preventDefault();
-        showToast('Passwords do not match. Please verify your password.', 'error');
+        notifications.error('Passwords do not match', 'Please verify your password.');
         return;
       }
 
-      // Show loading state
+      // Validate password strength
+      const password = passwordInput?.value || '';
+      if (password.length < 6) {
+        e.preventDefault();
+        notifications.error('Password too short', 'Password must be at least 6 characters long.');
+        return;
+      }
+
+      // Validate terms checkbox
+      const termsCheckbox = document.getElementById('terms') as HTMLInputElement;
+      if (!termsCheckbox?.checked) {
+        e.preventDefault();
+        notifications.error('Terms required', 'You must agree to the Terms of Service.');
+        return;
+      }
+      
+      // Mostrar spinner en botón
       registerBtn.disabled = true;
       btnText?.classList.add('hidden');
       btnSpinner?.classList.remove('hidden');
-    });
-
-    // Check if we have action result in the page
-    const hasActionResult = document.querySelector('[data-action-result]');
-    if (hasActionResult) {
-      const resultType = hasActionResult.getAttribute('data-result-type');
-      const resultMessage = hasActionResult.getAttribute('data-result-message');
       
-      if (resultType === 'success' && resultMessage) {
-        showToast(resultMessage, 'success');
-        // Redirect after showing toast
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 2000);
-      } else if (resultType === 'error' && resultMessage) {
-        showToast(resultMessage, 'error');
+      // Toggle cards después de breve delay
+      setTimeout(() => {
+        registerCard?.classList.add('hidden');
+        loadingOverlay?.classList.remove('hidden');
+      }, 300);
+      
+      // ✅ MEJORADO: Timeout con notificación de error
+      const timeoutId = setTimeout(() => {
+        console.log('⚠️ Registration taking too long, showing error notification');
+        
+        // Reset UI
         resetForm();
+        loadingOverlay?.classList.add('hidden');
+        registerCard?.classList.remove('hidden');
+        
+        // ✅ AGREGADO: Mostrar notificación de error
+        notifications.error('Connection timeout', 'The request is taking too long. Please try again.');
+      }, 10000); // Longer timeout for registration
+
+      // Clear timeout if registration succeeds
+      if (successFlag) {
+        clearTimeout(timeoutId);
       }
+    });
+  }
+
+  // ✅ AGREGADO: Manejo de errores de URL (igual que login)
+  const urlParams = new URLSearchParams(window.location.search);
+  const errorParam = urlParams.get('error');
+
+  if (errorParam) {
+    switch (errorParam) {
+      case 'email-exists':
+        notifications.error(
+          'Email already registered', 
+          'An account with this email already exists.'
+        );
+        break;
+      case 'weak-password':
+        notifications.error(
+          'Password too weak', 
+          'Please choose a stronger password.'
+        );
+        break;
+      case 'invalid-email':
+        notifications.error(
+          'Invalid email', 
+          'Please enter a valid email address.'
+        );
+        break;
+      case 'rate-limited':
+        notifications.error(
+          NOTIFICATION_MESSAGES.RATE_LIMITED.title, 
+          NOTIFICATION_MESSAGES.RATE_LIMITED.description
+        );
+        break;
+      default:
+        notifications.error(
+          NOTIFICATION_MESSAGES.REGISTER_ERROR.title, 
+          NOTIFICATION_MESSAGES.REGISTER_ERROR.description
+        );
     }
+    
+    // Clean URL without reloading
+    const cleanUrl = new URL(window.location.href);
+    cleanUrl.searchParams.delete('error');
+    window.history.replaceState({}, '', cleanUrl.toString());
   }
 
   function resetForm() {
@@ -327,6 +469,8 @@ const success = data?.success;
     if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
       registerForm?.reset();
       resetForm();
+      registerCard?.classList.remove('hidden');
+      loadingOverlay?.classList.add('hidden');
       strengthContainer!.style.display = 'none';
     }
   });
@@ -334,13 +478,26 @@ const success = data?.success;
   // Auto-focus first name field
   document.addEventListener('DOMContentLoaded', () => {
     const firstNameField = document.getElementById('first_name') as HTMLInputElement;
-    if (firstNameField && !firstNameField.value) {
-      firstNameField.focus();
+    if (firstNameField && !firstNameField.value && !errorParam && !successFlag) {
+      setTimeout(() => firstNameField.focus(), 100);
     }
+  });
+
+  // ✅ AGREGADO: Manejo de estado de red
+  window.addEventListener('offline', () => {
+    notifications.warning(
+      NOTIFICATION_MESSAGES.NETWORK_ERROR.title, 
+      'Please check your connection and try again.'
+    );
+  });
+
+  window.addEventListener('online', () => {
+    notifications.info('Connection restored', 'You are back online.');
   });
 </script>
 
 <style>
+  /* ✅ EXACTAMENTE los mismos estilos que login/logout */
   .btn-spinner {
     display: flex;
     align-items: center;
@@ -351,23 +508,38 @@ const success = data?.success;
     opacity: 0.7;
     cursor: not-allowed;
   }
+
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    transition: transform 0.2s ease;
+  }
+
+  .register-container {
+    width: 100%;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .hidden {
+    display: none !important;
+  }
+
+  .input:focus {
+    transform: scale(1.01);
+    transition: transform 0.2s ease;
+  }
+
+  button:focus-visible,
+  input:focus-visible,
+  a:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .transition-colors {
+    transition: color 0.2s ease;
+  }
 </style>
-
-<!-- FIXED: Hidden element with proper message access -->
-{success && data && (
-  <div 
-    data-action-result 
-    data-result-type="success" 
-    data-result-message={'Registration successful'}
-    style="display: none;"
-  ></div>
-)}
-
-{error && (
-  <div 
-    data-action-result 
-    data-result-type="error" 
-    data-result-message={error.message}
-    style="display: none;"
-  ></div>
-)}
